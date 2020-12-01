@@ -147,6 +147,9 @@ impl Packet {
         }
         println!();
     }
+    pub fn as_slice(&self) -> &[u8] {
+        self.data.as_slice()
+    }
     pub fn ethernet(dst: &str, src: &str, etype: u16) -> Ethernet<Vec<u8>> {
         let mut v: Vec<u8> = Vec::new();
         v.extend_from_slice(&dst.to_mac_bytes());
