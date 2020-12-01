@@ -67,7 +67,7 @@ impl ConvertToBytes for str {
     }
     fn to_ipv6_bytes(&self) -> [u8; 16] {
         let x = Ipv6Addr::from_str(self).unwrap();
-        println!("{} {:02x?}", x, x.octets());
+        // println!("{} {:02x?}", x, x.octets());
         x.octets()
     }
 }
@@ -130,6 +130,45 @@ impl Packet {
     pub fn payload(&mut self, len: u16) {
         let payload: Vec<u8> = (0..len as u8).map(|x| x).collect();
         self.data.extend_from_slice(&payload);
+        self.payload_len = len;
+    }
+    pub fn clone(&self) -> Packet {
+        let mut pkt = Packet::new();
+        for s in &self.layers {
+            pkt.layers.push(String::from(s));
+        }
+        for s in &self.layers {
+            pkt.buffer.insert(String::from(s), self.buffer[s].clone());
+        }
+        for s in &self.layers {
+            pkt.data.extend_from_slice(&pkt.buffer[s].octets());
+        }
+        let payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
+        pkt.data.extend_from_slice(&payload);
+        pkt
+    }
+    pub fn compare(&self, pkt: &Packet) -> bool {
+        if self.data.len() != pkt.data.len() {
+            return false
+        }
+        let a = self.data.as_slice();
+        let b = pkt.data.as_slice();
+        let matching = a.iter().zip(b).filter(|&(a, b)| a == b).count();
+        if self.data.len() != matching || pkt.data.len() != matching{
+            return false
+        }
+        true
+    }
+    pub fn compare_with_slice(&self, b: &[u8]) -> bool {
+        if self.data.len() != b.len() {
+            return false
+        }
+        let a = self.data.as_slice();
+        let matching = a.iter().zip(b).filter(|&(a, b)| a == b).count();
+        if self.data.len() != matching || b.len() != matching{
+            return false
+        }
+        true
     }
     pub fn show(&self) {
         for s in &self.layers {

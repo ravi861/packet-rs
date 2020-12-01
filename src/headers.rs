@@ -5,6 +5,7 @@ pub use paste::paste;
 pub trait Header {
     fn show(&self);
     fn octets(&self) -> Vec<u8>;
+    fn clone(&self) -> Box<dyn Header + 'static>;
 }
 
 #[macro_export]
@@ -19,6 +20,9 @@ macro_rules! make_header {
                 )*
             }
             impl<T: AsMut<[u8]> + AsRef<[u8]>> $name<T> {
+                pub fn size(&self) -> u32 {
+                    $size
+                }
                 $(
                     pub fn [<$field _size>](&self) -> u32 {
                         $ty - $off + 1
@@ -61,6 +65,9 @@ macro_rules! make_header {
                     }
                     println!();
                 }
+                pub fn clone(&self) -> $name<Vec<u8>> {
+                    $name(self.octets())
+                }
                 pub fn octets(&self) -> Vec<u8> {
                     // let mut x: [u8; $size] = [0; $size];
                     let mut x: Vec<u8> = vec![0; $size];
@@ -76,6 +83,9 @@ macro_rules! make_header {
                 }
                 fn octets(&self) -> Vec<u8>{
                     self.octets()
+                }
+                fn clone(&self) -> Box<dyn Header + 'static> {
+                    Box::new(self.clone())
                 }
             }
         }

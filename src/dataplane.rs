@@ -3,7 +3,6 @@ extern crate pnet;
 use crate::packet::Packet;
 use pnet::datalink::Channel::Ethernet;
 use pnet::datalink::{self, NetworkInterface};
-use pnet::packet::tcp::{MutableTcpPacket, TcpPacket};
 
 fn send_packet(pkt: &Packet) {
     let interface_names_match = |iface: &NetworkInterface| iface.name == "lo0";
@@ -48,8 +47,7 @@ fn verify_packet(pkt: &Packet) {
 
     match rx.next() {
         Ok(packet) => {
-            let packet = TcpPacket::new(packet).unwrap();
-            println!("{:?}", packet);
+            assert!(pkt.compare_with_slice(packet));
         }
         Err(e) => {
             // If an error occurs, we can handle it here
@@ -85,7 +83,6 @@ fn test_send_packet() {
         false,
         100,
     );
-    pkt.show();
     send_packet(&pkt);
     verify_packet(&pkt);
 }

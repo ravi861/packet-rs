@@ -91,6 +91,11 @@ fn create_packet_test() {
     );
     pkt.show();
 
+    let new_pkt = pkt.clone();
+    new_pkt.show();
+    assert_eq!(true, pkt.compare(&new_pkt));
+    assert_eq!(true, pkt.compare_with_slice(new_pkt.as_slice()));
+
     let pkt = rscapy::create_udp_packet(
         "00:01:02:03:04:05",
         "00:06:07:08:09:0a",
@@ -110,7 +115,7 @@ fn create_packet_test() {
         false,
         129,
     );
-    pkt.show();
+    // pkt.show();
 
     let pkt = rscapy::create_tcpv6_packet(
         "00:01:02:03:04:05",
@@ -134,7 +139,7 @@ fn create_packet_test() {
         0,
         100,
     );
-    pkt.show();
+    // pkt.show();
 
     let pkt = rscapy::create_udpv6_packet(
         "00:01:02:03:04:05",
@@ -151,5 +156,5 @@ fn create_packet_test() {
         9090,
         129,
     );
-    pkt.show();
+    // pkt.show();
 }
