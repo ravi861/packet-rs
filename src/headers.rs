@@ -1,5 +1,6 @@
-use ::bitfield::BitRange;
-use paste::paste;
+pub use ::bitfield::BitRange;
+pub use ::bitfield::bitfield;
+pub use paste::paste;
 
 pub trait Header {
     fn show(&self);
@@ -163,42 +164,3 @@ UDP 8
     checksum: 63: 48
 )
 );
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn binary_1() {
-        let data = [
-            0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0x81, 0x00,
-        ];
-        let ethernet = Ethernet(data);
-        ethernet.bytes();
-        ethernet.show();
-
-        let data = [0x00, 0x0a, 0x08, 0x00];
-        let vlan = Vlan(data);
-        vlan.bytes();
-        vlan.show();
-
-        let data = [
-            0x45, 0x00, 0x00, 0x14, 0x00, 0x33, 0x40, 0xdd, 0x40, 0x06, 0xfa, 0xec, 0xa, 0xa, 0xa,
-            0x1, 0xb, 0xb, 0xb, 0x1,
-        ];
-        let ipv4 = IPv4(data);
-        ipv4.bytes();
-        ipv4.show();
-
-        let data: Vec<u8> = (0..40 as u8).map(|x| x).collect();
-        let ipv6 = IPv6(data);
-        ipv6.bytes();
-        ipv6.show();
-
-        let mut v: Vec<u8> = Vec::new();
-        v.append(&mut ethernet.octets());
-        v.append(&mut vlan.octets());
-        v.append(&mut ipv4.octets());
-        println!("{:02x?}", v);
-    }
-}

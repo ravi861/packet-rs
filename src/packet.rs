@@ -250,22 +250,17 @@ impl Packet {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn ipv6_1() {
-        let s = String::from("2001:db8::1");
-        let _x = s.to_ipv6_bytes();
-        let s = String::from("2001::1");
-        let _x = s.to_ipv6_bytes();
-        let s = String::from("ffff::0");
-        let _x = s.to_ipv6_bytes();
-    }
-    #[test]
-    fn ipv4_1() {
-        let s = "10.10.10.1";
-        println!("{:?}", s.to_ipv4_bytes());
-    }
+#[test]
+fn ipv6_1() {
+    let s = String::from("2001:db8::1");
+    let _x = s.to_ipv6_bytes();
+    let s = String::from("2001::1");
+    let _x = s.to_ipv6_bytes();
+    let s = String::from("ffff::0");
+    let _x = s.to_ipv6_bytes();
+}
+#[test]
+fn ipv4_1() {
+    let s = "10.10.10.1";
+    println!("{:?}", s.to_ipv4_bytes());
 }

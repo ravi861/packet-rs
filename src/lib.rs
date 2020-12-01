@@ -3,8 +3,9 @@
 extern crate bitfield;
 extern crate paste;
 
-mod headers;
-mod packet;
+// pub here means expose to outside of crate
+pub mod headers;
+pub mod packet;
 
 use self::packet::*;
 

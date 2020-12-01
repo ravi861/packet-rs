@@ -1,7 +1,7 @@
 [package]
-name = "exe"
+name = "rscapy"
 version = "0.1.0"
-authors = ["Ravi Vantipalli (Intel) <vantipal@vantipal-mac02.local>"]
+authors = ["Ravi Vantipalli <vantipal@vantipal-mac02.local>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
