@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    net::Ipv6Addr,
-    str::FromStr,
-};
+use std::{collections::HashMap, net::Ipv6Addr, str::FromStr};
 
 use crate::headers::*;
 
