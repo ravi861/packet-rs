@@ -1,5 +1,5 @@
-pub use ::bitfield::BitRange;
 pub use ::bitfield::bitfield;
+pub use ::bitfield::BitRange;
 pub use paste::paste;
 
 pub trait Header {

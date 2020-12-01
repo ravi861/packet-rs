@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#[macro_use]
 extern crate bitfield;
 extern crate paste;
 
@@ -102,7 +101,7 @@ fn ipv6_packet(
     pkt
 }
 
-fn create_tcp_packet(
+pub fn create_tcp_packet(
     eth_dst: &str,
     eth_src: &str,
     vlan_enable: bool,
@@ -168,7 +167,7 @@ fn create_tcp_packet(
     pkt
 }
 
-fn create_udp_packet(
+pub fn create_udp_packet(
     eth_dst: &str,
     eth_src: &str,
     vlan_enable: bool,
@@ -215,7 +214,7 @@ fn create_udp_packet(
     pkt
 }
 
-fn create_tcpv6_packet(
+pub fn create_tcpv6_packet(
     eth_dst: &str,
     eth_src: &str,
     vlan_enable: bool,
@@ -274,7 +273,7 @@ fn create_tcpv6_packet(
     pkt
 }
 
-fn create_udpv6_packet(
+pub fn create_udpv6_packet(
     eth_dst: &str,
     eth_src: &str,
     vlan_enable: bool,
@@ -312,96 +311,4 @@ fn create_udpv6_packet(
 
     pkt.payload(l4_len - UDP_HDR_LEN);
     pkt
-}
-
-fn main() {
-    let pkt = create_tcp_packet(
-        "00:01:02:03:04:05",
-        "00:06:07:08:09:0a",
-        false,
-        10,
-        3,
-        5,
-        "10.10.10.1",
-        "11.11.11.1",
-        0,
-        64,
-        115,
-        0,
-        Vec::new(),
-        80,
-        9090,
-        100,
-        101,
-        0,
-        0,
-        1,
-        0,
-        0,
-        false,
-        100,
-    );
-    pkt.show();
-
-    let pkt = create_udp_packet(
-        "00:01:02:03:04:05",
-        "00:06:07:08:09:0a",
-        false,
-        10,
-        3,
-        5,
-        "192.168.0.199",
-        "192.168.0.1",
-        0,
-        64,
-        0,
-        0x4000,
-        Vec::new(),
-        80,
-        9090,
-        false,
-        129,
-    );
-    pkt.show();
-
-    let pkt = create_tcpv6_packet(
-        "00:01:02:03:04:05",
-        "00:06:07:08:09:0a",
-        false,
-        10,
-        3,
-        5,
-        4,
-        64,
-        "AAAA::1",
-        "BBBB::1",
-        80,
-        9090,
-        100,
-        101,
-        0,
-        0,
-        1,
-        0,
-        0,
-        100,
-    );
-    pkt.show();
-
-    let pkt = create_udpv6_packet(
-        "00:01:02:03:04:05",
-        "00:06:07:08:09:0a",
-        false,
-        10,
-        3,
-        5,
-        4,
-        64,
-        "AAAA::1",
-        "BBBB::1",
-        80,
-        9090,
-        129,
-    );
-    pkt.show();
 }

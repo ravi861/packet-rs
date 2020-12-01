@@ -22,7 +22,6 @@ fn custom_header_test() {
     my_header.set_bytes_1(0x22);
     assert_eq!(0x22, my_header.bytes_1());
 
-
     my_header.set_bytes_2(0x3344);
     assert_eq!(0x3344, my_header.bytes_2());
     my_header.show();
@@ -60,4 +59,97 @@ fn inbuilt_header_test() {
     v.append(&mut vlan.octets());
     v.append(&mut ipv4.octets());
     println!("{:02x?}", v);
+}
+
+#[test]
+fn create_packet_test() {
+    let pkt = rscapy::create_tcp_packet(
+        "00:01:02:03:04:05",
+        "00:06:07:08:09:0a",
+        false,
+        10,
+        3,
+        5,
+        "10.10.10.1",
+        "11.11.11.1",
+        0,
+        64,
+        115,
+        0,
+        Vec::new(),
+        80,
+        9090,
+        100,
+        101,
+        0,
+        0,
+        1,
+        0,
+        0,
+        false,
+        100,
+    );
+    pkt.show();
+
+    let pkt = rscapy::create_udp_packet(
+        "00:01:02:03:04:05",
+        "00:06:07:08:09:0a",
+        false,
+        10,
+        3,
+        5,
+        "192.168.0.199",
+        "192.168.0.1",
+        0,
+        64,
+        0,
+        0x4000,
+        Vec::new(),
+        80,
+        9090,
+        false,
+        129,
+    );
+    pkt.show();
+
+    let pkt = rscapy::create_tcpv6_packet(
+        "00:01:02:03:04:05",
+        "00:06:07:08:09:0a",
+        false,
+        10,
+        3,
+        5,
+        4,
+        64,
+        "AAAA::1",
+        "BBBB::1",
+        80,
+        9090,
+        100,
+        101,
+        0,
+        0,
+        1,
+        0,
+        0,
+        100,
+    );
+    pkt.show();
+
+    let pkt = rscapy::create_udpv6_packet(
+        "00:01:02:03:04:05",
+        "00:06:07:08:09:0a",
+        false,
+        10,
+        3,
+        5,
+        4,
+        64,
+        "AAAA::1",
+        "BBBB::1",
+        80,
+        9090,
+        129,
+    );
+    pkt.show();
 }

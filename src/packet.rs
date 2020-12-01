@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::{
-    net::{Ipv4Addr, Ipv6Addr},
+    collections::HashMap,
+    net::Ipv6Addr,
     str::FromStr,
 };
 
