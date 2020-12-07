@@ -3,16 +3,18 @@ extern crate pnet;
 use crate::packet::Packet;
 use pnet::datalink::Channel::Ethernet;
 use pnet::datalink::{self, NetworkInterface};
+use pnet::datalink::{DataLinkReceiver, DataLinkSender};
+use pnet::datalink::dummy;
 
-fn send_packet(pkt: &Packet) {
-    let interface_names_match = |iface: &NetworkInterface| iface.name == "lo0";
+fn create_conn(intf: &str) -> (Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>) {
+    let interface_names_match = |iface: &NetworkInterface| iface.name == intf;
     let interfaces = datalink::interfaces();
-    let interface = interfaces
+    println!("{:?}", interfaces);
+    let interface = interfaces.clone()
         .into_iter()
         .filter(interface_names_match)
         .next()
         .unwrap();
-    println!("{}", interface);
     // Create a new channel, dealing with layer 2 packets
     let (mut tx, mut rx) = match datalink::channel(&interface, Default::default()) {
         Ok(Ethernet(tx, rx)) => (tx, rx),
@@ -22,21 +24,13 @@ fn send_packet(pkt: &Packet) {
             e
         ),
     };
-
-    tx.send_to(pkt.as_slice(), None);
+    (tx, rx)
 }
 
-fn verify_packet(pkt: &Packet) {
-    let interface_names_match = |iface: &NetworkInterface| iface.name == "lo0";
-    let interfaces = datalink::interfaces();
-    let interface = interfaces
-        .into_iter()
-        .filter(interface_names_match)
-        .next()
-        .unwrap();
-    println!("{}", interface);
+fn create_dummy_conn(intf: u8) -> (Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>) {
+    let interface = dummy::dummy_interface(intf);
     // Create a new channel, dealing with layer 2 packets
-    let (mut tx, mut rx) = match datalink::channel(&interface, Default::default()) {
+    let (mut tx, mut rx) = match dummy::channel(&interface, dummy::Config::default()) {
         Ok(Ethernet(tx, rx)) => (tx, rx),
         Ok(_) => panic!("Unhandled channel type"),
         Err(e) => panic!(
@@ -44,9 +38,19 @@ fn verify_packet(pkt: &Packet) {
             e
         ),
     };
+    (tx, rx)
+}
 
+fn send_packet(tx: &mut Box<dyn DataLinkSender + 'static>, pkt: &Packet) {
+    tx.send_to(pkt.as_slice(), None);
+    println!("Sent");
+}
+
+fn verify_packet(rx: &mut Box<dyn DataLinkReceiver + 'static>, pkt: &Packet) {
+    println!("Rx");
     match rx.next() {
         Ok(packet) => {
+            println!("{:?}", packet);
             assert!(pkt.compare_with_slice(packet));
         }
         Err(e) => {
@@ -58,7 +62,7 @@ fn verify_packet(pkt: &Packet) {
 #[test]
 fn test_send_packet() {
     let pkt = crate::create_tcp_packet(
-        "00:77:66:55:44:33",
+        "01:02:03:04:05:01",
         "00:06:07:08:09:0a",
         false,
         10,
@@ -83,6 +87,8 @@ fn test_send_packet() {
         false,
         100,
     );
-    send_packet(&pkt);
-    verify_packet(&pkt);
+    let (mut tx, mut rx) = create_dummy_conn(0);
+    // let (_, mut rx) = create_dummy_conn(1);
+    send_packet(&mut tx, &pkt);
+    verify_packet(&mut rx, &pkt);
 }

@@ -8,10 +8,10 @@ fn custom_header_test() {
     make_header!(
     MyOwnHeader 10
     (
-        bytes_1: 7: 0,
-        bytes_2: 23: 8,
-        bytes_3: 47: 32,
-        bytes_4: 79: 48
+        bytes_1: 0-7,
+        bytes_2: 8-23,
+        bytes_3: 32-47,
+        bytes_4: 48-79
     )
     );
     let data: Vec<u8> = (0..10 as u8).map(|x| x).collect();

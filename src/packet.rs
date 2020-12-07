@@ -78,7 +78,7 @@ pub type Pbuff = HashMap<String, Hdr>;
 pub struct Packet {
     buffer: Pbuff,
     layers: Vec<String>,
-    data: Vec<u8>,
+    pub data: Vec<u8>,
     payload_len: u16,
 }
 
@@ -149,24 +149,24 @@ impl Packet {
     }
     pub fn compare(&self, pkt: &Packet) -> bool {
         if self.data.len() != pkt.data.len() {
-            return false
+            return false;
         }
         let a = self.data.as_slice();
         let b = pkt.data.as_slice();
         let matching = a.iter().zip(b).filter(|&(a, b)| a == b).count();
-        if self.data.len() != matching || pkt.data.len() != matching{
-            return false
+        if self.data.len() != matching || pkt.data.len() != matching {
+            return false;
         }
         true
     }
     pub fn compare_with_slice(&self, b: &[u8]) -> bool {
         if self.data.len() != b.len() {
-            return false
+            return false;
         }
         let a = self.data.as_slice();
         let matching = a.iter().zip(b).filter(|&(a, b)| a == b).count();
-        if self.data.len() != matching || b.len() != matching{
-            return false
+        if self.data.len() != matching || b.len() != matching {
+            return false;
         }
         true
     }
