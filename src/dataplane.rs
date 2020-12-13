@@ -7,11 +7,12 @@ use pnet::datalink::{self, NetworkInterface};
 use pnet::datalink::{DataLinkReceiver, DataLinkSender};
 
 use std::sync::mpsc;
+use std::thread;
+use std::time::{Duration, Instant};
 
 fn create_conn(intf: &str) -> (Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>) {
     let interface_names_match = |iface: &NetworkInterface| iface.name == intf;
     let interfaces = datalink::interfaces();
-    println!("{:?}", interfaces);
     let interface = interfaces
         .clone()
         .into_iter()
@@ -32,7 +33,6 @@ fn create_conn(intf: &str) -> (Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver
 
 fn send_packet(tx: &mut Box<dyn DataLinkSender + 'static>, pkt: &Packet) {
     tx.send_to(pkt.as_slice(), None);
-    println!("Sent");
 }
 
 fn verify_packet(rx: &mut Box<dyn DataLinkReceiver + 'static>, pkt: &Packet) {
@@ -58,7 +58,7 @@ fn create_mpsc_conn(intf: u8) -> (mpsc::Sender<Packet>, mpsc::Receiver<Packet>) 
 #[test]
 fn test_send_packet() {
     let pkt = crate::create_tcp_packet(
-        "01:02:03:04:05:01",
+        "00:01:02:03:04:05",
         "00:06:07:08:09:0a",
         false,
         10,
@@ -84,8 +84,35 @@ fn test_send_packet() {
         100,
     );
 
-    let (mut tx, mut rx) = create_conn("lo0");
-    // let (_, mut rx) = create_dummy_conn(1);
-    send_packet(&mut tx, &pkt);
-    verify_packet(&mut rx, &pkt);
+    let (mut tx, _) = create_conn("veth0");
+    let (_, mut rx) = create_conn("veth2");
+
+    // this is a vector because pnet returns packet as a slice
+    let (mtx, mrx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::channel();
+
+    let handle = thread::spawn(move || {
+      loop {
+        match rx.next() {
+            Ok(packet) => {
+                mtx.send(Vec::from(packet)).unwrap();
+                // assert!(epkt.compare_with_slice(packet));
+            }
+            Err(e) => {
+                // If an error occurs, we can handle it here
+                panic!("An error occurred while reading: {}", e);
+            }
+        }
+      }
+    });
+    let start = Instant::now();
+    for i in 0..100 {
+      send_packet(&mut tx, &pkt);
+      thread::sleep(Duration::from_millis(1));
+      let p = mrx.recv().unwrap();
+      assert!(pkt.compare_with_slice(p.as_slice()));
+    }
+    println!("Done");
+    let duration = start.elapsed();
+    println!("Time elapsed in expensive_function() is: {:?}", duration);
+    handle.join().unwrap();
 }
