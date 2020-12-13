@@ -72,7 +72,7 @@ impl ConvertToBytes for str {
     }
 }
 
-pub type Hdr = Box<dyn Header + 'static>;
+pub type Hdr = Box<dyn Header>;
 pub type Pbuff = HashMap<String, Hdr>;
 
 pub struct Packet {
@@ -107,10 +107,15 @@ impl Packet {
             payload_len,
         }
     }
-    pub fn push(&mut self, name: &str, layer: Hdr) {
+    fn push1(&mut self, name: &str, layer: Hdr) {
         self.buffer.insert(String::from(name), layer);
         self.layers.push(String::from(name));
         self.data.extend_from_slice(&self.buffer[name].octets());
+    }
+    pub fn push(&mut self, layer: impl Header) {
+        self.buffer.insert(String::from(layer.name()), layer.clone());
+        self.layers.push(String::from(layer.name()));
+        self.data.extend_from_slice(&self.buffer[layer.name()].octets());
     }
     fn rebuild_data(&mut self) {
         self.data.clear();
@@ -229,7 +234,7 @@ impl Packet {
         v.extend_from_slice(&dst.to_ipv4_bytes());
         ip_chksum = ipv4_checksum(&v);
         let mut ip = IPv4(v);
-        ip.set_header_checksum(ip_chksum as u32);
+        ip.set_header_checksum(ip_chksum as u64);
         ip
     }
     pub fn ipv6(

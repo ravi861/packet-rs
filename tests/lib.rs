@@ -14,7 +14,7 @@ fn custom_header_test() {
         bytes_4: 48-79
     )
     );
-    let data: Vec<u8> = (0..10 as u8).map(|x| x).collect();
+    let data: Vec<u8> = vec![0; 10];
     let mut my_header = MyOwnHeader(data);
     my_header.bytes();
     my_header.show();
@@ -28,18 +28,47 @@ fn custom_header_test() {
 }
 
 #[test]
-fn inbuilt_header_test() {
+fn ethernet_header_test() {
+    let mut eth = Ethernet::new();
+    eth.show();
+
+    // dst
+    assert_eq!(0x102030405, eth.dst());
+    eth.set_dst(0x60708090a0b as u64);
+    assert_eq!(0x60708090a0b, eth.dst());
+
+    // src
+    assert_eq!(0x60708090a0b, eth.src());
+    eth.set_src(0x102030405 as u64);
+    assert_eq!(0x102030405, eth.src());
+
+    // etype
+    assert_eq!(0x800, eth.etype());
+    eth.set_etype(0x8100 as u64);
+    assert_eq!(0x8100, eth.etype());
+
     let data = [
         0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0x81, 0x00,
     ];
     let ethernet = Ethernet(data);
     ethernet.bytes();
     ethernet.show();
+}
+#[test]
+fn vlan_header_test() {
+    let vlan = Vlan::new();
+    vlan.show();
 
     let data = [0x00, 0x0a, 0x08, 0x00];
     let vlan = Vlan(data);
     vlan.bytes();
     vlan.show();
+}
+
+#[test]
+fn ip_header_test() {
+    let ipv4 = IPv4::new();
+    ipv4.show();
 
     let data = [
         0x45, 0x00, 0x00, 0x14, 0x00, 0x33, 0x40, 0xdd, 0x40, 0x06, 0xfa, 0xec, 0xa, 0xa, 0xa, 0x1,
@@ -49,16 +78,10 @@ fn inbuilt_header_test() {
     ipv4.bytes();
     ipv4.show();
 
-    let data: Vec<u8> = (0..40 as u8).map(|x| x).collect();
+    let data: Vec<u8> = vec![0; IPv6::<Vec<u8>>::size()];
     let ipv6 = IPv6(data);
     ipv6.bytes();
     ipv6.show();
-
-    let mut v: Vec<u8> = Vec::new();
-    v.append(&mut ethernet.octets());
-    v.append(&mut vlan.octets());
-    v.append(&mut ipv4.octets());
-    println!("{:02x?}", v);
 }
 
 #[test]
@@ -139,7 +162,8 @@ fn create_packet_test() {
         0,
         100,
     );
-    // pkt.show();
+    pkt.show();
+    pkt.as_slice();
 
     let pkt = rscapy::create_udpv6_packet(
         "00:01:02:03:04:05",

@@ -6,22 +6,35 @@ pub trait Header {
     fn show(&self);
     fn octets(&self) -> Vec<u8>;
     fn clone(&self) -> Box<dyn Header + 'static>;
+    fn name(&self) -> &str;
 }
 
 #[macro_export]
 macro_rules! make_header {
-    ( $name: ident $size: literal ($($field: ident: $start: literal-$end: literal),*) ) => {
+    (
+        $name: ident $size: literal
+        ( $($field: ident: $start: literal-$end: literal),* )
+        $x:expr
+    ) => {
         paste! {
             bitfield! {
                 pub struct $name(MSB0 [u8]);
-                u32;
+                u64;
                 $(
                     pub $field, [<set_ $field>]: $end, $start;
                 )*
             }
+            impl $name<Vec<u8>> {
+                pub fn new() -> $name<Vec<u8>> {
+                    $name($x)
+                }
+            }
             impl<T: AsMut<[u8]> + AsRef<[u8]>> $name<T> {
-                pub fn size(&self) -> u32 {
+                pub fn size() -> usize {
                     $size
+                }
+                pub fn name(&self) -> &str {
+                    stringify!($name)
                 }
                 $(
                     pub fn [<$field _size>](&self) -> u32 {
@@ -87,9 +100,26 @@ macro_rules! make_header {
                 fn clone(&self) -> Box<dyn Header + 'static> {
                     Box::new(self.clone())
                 }
+                fn name(&self) -> &str {
+                    self.name()
+                }
             }
         }
-    }
+    };
+    (
+        $name: ident $size: literal
+        ( $($field: ident: $start: literal-$end: literal),* )
+    ) => {
+        make_header!(
+            $name $size
+            (
+                $(
+                    $field: $start-$end
+                ),*
+            )
+            vec![0; $size]
+        );
+    };
 }
 
 // ethernet header
@@ -100,6 +130,9 @@ Ethernet 14
     src: 48-95,
     etype: 96-111
 )
+vec![0x0, 0x1, 0x2, 0x3, 0x4, 0x5,
+     0x6, 0x7, 0x8, 0x9, 0xa, 0xb,
+     0x08, 0x00]
 );
 
 // vlan header
@@ -111,6 +144,7 @@ Vlan 4
     vid: 4-15,
     etype: 16-31
 )
+vec![0x0, 0xa, 0x08, 0x00]
 );
 
 // ipv4 header
@@ -130,6 +164,11 @@ IPv4 20
     src: 96-127,
     dst: 128-159
 )
+vec![
+    0x45, 0x00, 0x00, 0x14, 0x00, 0x33, 0x40, 0xdd, 0x40, 0x06, 0xfa, 0xec,
+    0xc0, 0xa8, 0x0, 0x1,
+    0xc0, 0xa8, 0x0, 0x2,
+]
 );
 
 // ipv6 header
@@ -145,6 +184,10 @@ IPv6 40
     src: 64-191,
     dst: 192-319
 )
+vec![0x60, 0x00, 0x00, 0x00, 0x00, 0x2e, 0x06, 0x40,
+     0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34,
+     0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x35,
+]
 );
 
 // tcp header
@@ -152,7 +195,7 @@ make_header!(
 TCP 20
 (
     src: 0-15,
-    dst_port: 16-31,
+    dst: 16-31,
     seq_no: 32-63,
     ack_no: 64-95,
     data_startset: 96-99,
@@ -162,6 +205,8 @@ TCP 20
     checksum: 128-143,
     urgent_ptr: 144-159
 )
+vec![0x04, 0xd2 , 0x00, 0x50, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+     0x50, 0x02, 0x20, 0x00, 0x0d, 0x2c, 0x0, 0x0]
 );
 
 // udp header
@@ -173,4 +218,14 @@ UDP 8
     length: 32-47,
     checksum: 48-63
 )
+vec![0x04, 0xd2 , 0x00, 0x50, 0x0, 0x0, 0x0, 0x0]
 );
+
+#[test]
+fn header1_test() {
+    let s = IPv6::new();
+    s.show();
+    println!("{}", s.name());
+    let s = Ethernet::new();
+    s.show();
+}
