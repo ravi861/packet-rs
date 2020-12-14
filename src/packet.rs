@@ -113,9 +113,11 @@ impl Packet {
         self.data.extend_from_slice(&self.buffer[name].octets());
     }
     pub fn push(&mut self, layer: impl Header) {
-        self.buffer.insert(String::from(layer.name()), layer.clone());
+        self.buffer
+            .insert(String::from(layer.name()), layer.clone());
         self.layers.push(String::from(layer.name()));
-        self.data.extend_from_slice(&self.buffer[layer.name()].octets());
+        self.data
+            .extend_from_slice(&self.buffer[layer.name()].octets());
     }
     fn rebuild_data(&mut self) {
         self.data.clear();

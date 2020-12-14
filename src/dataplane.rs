@@ -1,7 +1,6 @@
 extern crate pnet;
 
 use crate::packet::Packet;
-use pnet::datalink::dummy;
 use pnet::datalink::Channel::Ethernet;
 use pnet::datalink::{self, NetworkInterface};
 use pnet::datalink::{DataLinkReceiver, DataLinkSender};
@@ -91,25 +90,25 @@ fn test_send_packet() {
     let (mtx, mrx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::channel();
 
     let handle = thread::spawn(move || {
-      loop {
-        match rx.next() {
-            Ok(packet) => {
-                mtx.send(Vec::from(packet)).unwrap();
-                // assert!(epkt.compare_with_slice(packet));
-            }
-            Err(e) => {
-                // If an error occurs, we can handle it here
-                panic!("An error occurred while reading: {}", e);
+        loop {
+            match rx.next() {
+                Ok(packet) => {
+                    mtx.send(Vec::from(packet)).unwrap();
+                    // assert!(epkt.compare_with_slice(packet));
+                }
+                Err(e) => {
+                    // If an error occurs, we can handle it here
+                    panic!("An error occurred while reading: {}", e);
+                }
             }
         }
-      }
     });
     let start = Instant::now();
     for i in 0..100 {
-      send_packet(&mut tx, &pkt);
-      thread::sleep(Duration::from_millis(1));
-      let p = mrx.recv().unwrap();
-      assert!(pkt.compare_with_slice(p.as_slice()));
+        send_packet(&mut tx, &pkt);
+        thread::sleep(Duration::from_millis(1));
+        let p = mrx.recv().unwrap();
+        assert!(pkt.compare_with_slice(p.as_slice()));
     }
     println!("Done");
     let duration = start.elapsed();
