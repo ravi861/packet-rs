@@ -67,7 +67,6 @@ impl ConvertToBytes for str {
     }
     fn to_ipv6_bytes(&self) -> [u8; 16] {
         let x = Ipv6Addr::from_str(self).unwrap();
-        // println!("{} {:02x?}", x, x.octets());
         x.octets()
     }
 }
@@ -94,7 +93,7 @@ impl Packet {
     pub fn from(buffer: Pbuff, layers: Vec<String>, payload_len: u16) -> Packet {
         let mut data: Vec<u8> = Vec::new();
         for s in &layers {
-            data.extend_from_slice(&buffer[s].octets());
+            data.extend_from_slice(&buffer[s].as_slice());
         }
         if payload_len > 0 {
             let payload: Vec<u8> = (0..payload_len as u8).map(|x| x).collect();
@@ -107,27 +106,31 @@ impl Packet {
             payload_len,
         }
     }
+    #[deprecated]
     fn push1(&mut self, name: &str, layer: Hdr) {
         self.buffer.insert(String::from(name), layer);
         self.layers.push(String::from(name));
-        self.data.extend_from_slice(&self.buffer[name].octets());
+        self.data.extend_from_slice(&self.buffer[name].as_slice());
     }
     pub fn push(&mut self, layer: impl Header) {
         self.buffer
             .insert(String::from(layer.name()), layer.clone());
         self.layers.push(String::from(layer.name()));
         self.data
-            .extend_from_slice(&self.buffer[layer.name()].octets());
+            .extend_from_slice(&self.buffer[layer.name()].as_slice());
     }
     fn rebuild_data(&mut self) {
         self.data.clear();
         for s in &self.layers {
-            self.data.extend_from_slice(&self.buffer[s].octets());
+            self.data.extend_from_slice(&self.buffer[s].as_slice());
         }
         if self.payload_len > 0 {
             let payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
             self.data.extend_from_slice(&payload);
         }
+    }
+    pub fn refresh(&mut self) {
+        self.rebuild_data();
     }
     pub fn pop(&mut self) {
         let name = self.layers.pop();
@@ -148,7 +151,7 @@ impl Packet {
             pkt.buffer.insert(String::from(s), self.buffer[s].clone());
         }
         for s in &self.layers {
-            pkt.data.extend_from_slice(&pkt.buffer[s].octets());
+            pkt.data.extend_from_slice(&pkt.buffer[s].as_slice());
         }
         let payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
         pkt.data.extend_from_slice(&payload);
@@ -196,6 +199,15 @@ impl Packet {
     pub fn as_slice(&self) -> &[u8] {
         self.data.as_slice()
     }
+    pub fn get_header(&self, name: &str) -> &Hdr {
+        &self.buffer[name]
+    }
+    pub fn get_header_mut(&mut self, name: &str) -> &mut Hdr {
+        self.buffer.get_mut(name).unwrap()
+    }
+}
+
+impl Packet {
     pub fn ethernet(dst: &str, src: &str, etype: u16) -> Ethernet<Vec<u8>> {
         let mut v: Vec<u8> = Vec::new();
         v.extend_from_slice(&dst.to_mac_bytes());

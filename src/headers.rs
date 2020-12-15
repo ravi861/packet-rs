@@ -1,12 +1,15 @@
 pub use ::bitfield::bitfield;
 pub use ::bitfield::BitRange;
 pub use paste::paste;
+pub use std::any::Any;
 
 pub trait Header {
     fn show(&self);
-    fn octets(&self) -> Vec<u8>;
-    fn clone(&self) -> Box<dyn Header + 'static>;
+    fn as_slice(&self) -> &[u8];
+    fn clone(&self) -> Box<dyn Header>;
     fn name(&self) -> &str;
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 #[macro_export]
@@ -68,7 +71,7 @@ macro_rules! make_header {
                     println!();
                     )*
                 }
-                pub fn bytes(&self) {
+                fn bytes(&self) {
                     for i in (0..$size*8).step_by(8) {
                         let x: u8 = self.bit_range(i + 7, i);
                         print!("{:02x} ", x);
@@ -79,9 +82,9 @@ macro_rules! make_header {
                     println!();
                 }
                 pub fn clone(&self) -> $name<Vec<u8>> {
-                    $name(self.octets())
+                    $name(self.raw())
                 }
-                pub fn octets(&self) -> Vec<u8> {
+                fn raw(&self) -> Vec<u8> {
                     // let mut x: [u8; $size] = [0; $size];
                     let mut x: Vec<u8> = vec![0; $size];
                     for i in (0..$size*8).step_by(8) {
@@ -89,19 +92,42 @@ macro_rules! make_header {
                     }
                     x
                 }
+                pub fn as_slice(&self) -> &[u8] {
+                    self.0.as_ref()
+                }
+                pub fn concrete<'a>(x: &'a Box<dyn Header>) -> &'a $name<Vec<u8>> {
+                    let b: & $name<Vec<u8>> = match x.as_any().downcast_ref::<$name<Vec<u8>>>() {
+                        Some(b) => b,
+                        None => panic!("&a isn't a B!")
+                    };
+                    b
+                }
+                pub fn to_concrete_mut<'a>(x: &'a mut Box<dyn Header>) -> &'a mut $name<Vec<u8>> {
+                    let b = match x.as_any_mut().downcast_mut::<$name<Vec<u8>>>() {
+                        Some(b) => b,
+                        None => panic!("&mut x isn't a {}", stringify!($name))
+                    };
+                    b
+                }
             }
             impl Header for $name<Vec<u8>> {
                 fn show(&self) {
                     self.show();
                 }
-                fn octets(&self) -> Vec<u8>{
-                    self.octets()
+                fn as_slice(&self) -> &[u8] {
+                    self.as_slice()
                 }
                 fn clone(&self) -> Box<dyn Header + 'static> {
                     Box::new(self.clone())
                 }
                 fn name(&self) -> &str {
                     self.name()
+                }
+                fn as_any(&self) -> &dyn Any {
+                    self
+                }
+                fn as_any_mut(&mut self) -> &mut dyn Any {
+                    self
                 }
             }
         }
@@ -220,12 +246,3 @@ UDP 8
 )
 vec![0x04, 0xd2 , 0x00, 0x50, 0x0, 0x0, 0x0, 0x0]
 );
-
-#[test]
-fn header1_test() {
-    let s = IPv6::new();
-    s.show();
-    println!("{}", s.name());
-    let s = Ethernet::new();
-    s.show();
-}
