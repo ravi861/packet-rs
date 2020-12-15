@@ -2,11 +2,41 @@
 extern crate rscapy;
 
 use rscapy::headers::*;
+use rscapy::packet::*;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[test]
+    fn set_header_octets_test() {
+        let mut ips = Vec::new();
+        ips.push(String::from("FFFF::FFFF").to_ipv6_bytes());
+        ips.push(String::from("7FFF::FFFF").to_ipv6_bytes());
+        ips.push(String::from("FFF7::FFFF").to_ipv6_bytes());
+        ips.push(String::from("FFFF::FFF7").to_ipv6_bytes());
+        ips.push(String::from("FFFF::7FFF").to_ipv6_bytes());
+        ips.push(String::from("1111::FFFF").to_ipv6_bytes());
+        ips.push(String::from("8888::FFFF").to_ipv6_bytes());
+        ips.push(String::from("FFFF::1111").to_ipv6_bytes());
+        ips.push(String::from("FFFF::8888").to_ipv6_bytes());
+        ips.push(String::from("8888::1111").to_ipv6_bytes());
+        ips.push(String::from("2001:3001:4001::FFFF").to_ipv6_bytes());
+        ips.push(String::from("FFFF:4001:3001::2001").to_ipv6_bytes());
+        ips.push(String::from("FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF").to_ipv6_bytes());
+        ips.push(String::from("1111:1111:1111:1111:1111:1111:1111:1111").to_ipv6_bytes());
+        ips.push(String::from("8888:8888:8888:8888:8888:8888:8888:8888").to_ipv6_bytes());
+        ips.push(String::from("FFFF:4001:3001:2001:2001:3001:4001:FFFF").to_ipv6_bytes());
+        ips.push(String::from("2001:3001:4001:FFFF:FFFF:4001:3001:2001").to_ipv6_bytes());
+
+        let mut ipv6 = IPv6::new();
+        for a in ips {
+            ipv6.set_bytes(IPv6::<Vec<u8>>::dst_msb(), IPv6::<Vec<u8>>::dst_lsb(), &a);
+            let b = ipv6.get_bytes(IPv6::<Vec<u8>>::dst_msb(), IPv6::<Vec<u8>>::dst_lsb());
+            let b = b.as_slice();
+            assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 16);
+        }
+    }
     #[test]
     fn custom_header_test() {
         make_header!(

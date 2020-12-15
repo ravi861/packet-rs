@@ -33,6 +33,27 @@ macro_rules! make_header {
                 }
             }
             impl<T: AsMut<[u8]> + AsRef<[u8]>> $name<T> {
+                pub fn get_bytes(&self, msb: usize, lsb: usize) -> Vec<u8> {
+                    let bit_len = ::bitfield::size_of::<u8>() * 8;
+                    assert_eq!((msb-lsb+1)%bit_len, 0);
+                    let mut value: Vec<u8> = Vec::new();
+                    for i in (lsb..=msb).step_by(bit_len) {
+                        let v: u8 = self.bit_range(i + 7, i);
+                        value.push(v);
+                    }
+                    value
+                }
+                pub fn set_bytes(&mut self, msb: usize, lsb: usize, value: &[u8]) {
+                    let bit_len = ::bitfield::size_of::<u8>() * 8;
+                    assert_eq!(value.len() * bit_len, msb-lsb+1);
+                    let mut iter = 0;
+                    for i in (lsb..=msb).step_by(bit_len) {
+                        self.set_bit_range(i + 7, i, value[iter]);
+                        iter += 1;
+                    }
+                }
+            }
+            impl<T: AsMut<[u8]> + AsRef<[u8]>> $name<T> {
                 pub fn size() -> usize {
                     $size
                 }
@@ -40,8 +61,14 @@ macro_rules! make_header {
                     stringify!($name)
                 }
                 $(
-                    pub fn [<$field _size>](&self) -> u32 {
+                    pub fn [<$field _size>]() -> usize {
                         $end - $start + 1
+                    }
+                    pub fn [<$field _lsb>]() -> usize {
+                        $start
+                    }
+                    pub fn [<$field _msb>]() -> usize {
+                        $end
                     }
                 )*
                 pub fn show(&self) {

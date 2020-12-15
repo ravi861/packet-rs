@@ -5,11 +5,7 @@ use pnet::datalink::Channel::Ethernet;
 use pnet::datalink::{self, NetworkInterface};
 use pnet::datalink::{DataLinkReceiver, DataLinkSender};
 
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering;
 use std::sync::mpsc;
-use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -50,12 +46,6 @@ fn verify_packet(rx: &mut Box<dyn DataLinkReceiver + 'static>, pkt: &Packet) {
             panic!("An error occurred while reading: {}", e);
         }
     }
-}
-
-fn create_mpsc_conn(intf: u8) -> (mpsc::Sender<Packet>, mpsc::Receiver<Packet>) {
-    // Create a new channel, dealing with layer 2 packets
-    let (mut tx, mut rx) = mpsc::channel();
-    (tx, rx)
 }
 
 #[test]

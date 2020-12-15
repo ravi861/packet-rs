@@ -44,7 +44,7 @@ pub const ETHERTYPE_ARP: u16 = 0x0806;
 pub const ETHERTYPE_DOT1Q: u16 = 0x8100;
 pub const ETHERTYPE_IPV6: u16 = 0x86DD;
 
-trait ConvertToBytes {
+pub trait ConvertToBytes {
     fn to_mac_bytes(&self) -> [u8; 6];
     fn to_ipv4_bytes(&self) -> [u8; 4];
     fn to_ipv6_bytes(&self) -> [u8; 16];
