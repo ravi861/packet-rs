@@ -5,7 +5,11 @@ use pnet::datalink::Channel::Ethernet;
 use pnet::datalink::{self, NetworkInterface};
 use pnet::datalink::{DataLinkReceiver, DataLinkSender};
 
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -57,7 +61,7 @@ fn create_mpsc_conn(intf: u8) -> (mpsc::Sender<Packet>, mpsc::Receiver<Packet>) 
 #[test]
 fn test_send_packet() {
     let pkt = crate::create_tcp_packet(
-        "00:01:02:03:04:05",
+        "00:11:11:11:11:11",
         "00:06:07:08:09:0a",
         false,
         10,
@@ -104,14 +108,14 @@ fn test_send_packet() {
         }
     });
     let start = Instant::now();
-    for i in 0..100 {
+    let cnt = 100;
+    for i in 0..cnt {
         send_packet(&mut tx, &pkt);
-        thread::sleep(Duration::from_millis(1));
         let p = mrx.recv().unwrap();
         assert!(pkt.compare_with_slice(p.as_slice()));
     }
-    println!("Done");
     let duration = start.elapsed();
-    println!("Time elapsed in expensive_function() is: {:?}", duration);
-    handle.join().unwrap();
+    println!("Time elapsed for {} packets is: {:?}", cnt, duration);
+
+    //handle.join().unwrap();
 }

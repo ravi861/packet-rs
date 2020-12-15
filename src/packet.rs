@@ -169,6 +169,7 @@ impl Packet {
         }
         true
     }
+    #[inline]
     pub fn compare_with_slice(&self, b: &[u8]) -> bool {
         if self.data.len() != b.len() {
             return false;
