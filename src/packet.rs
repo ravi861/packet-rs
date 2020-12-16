@@ -129,12 +129,6 @@ impl Packet {
             payload_len: 0,
         }
     }
-    pub fn get_header(&self, name: &str) -> &Hdr {
-        &self.buffer[name]
-    }
-    pub fn get_header_mut(&mut self, name: &str) -> &mut Hdr {
-        self.buffer.get_mut(name).unwrap()
-    }
     pub fn from(buffer: Pbuff, layers: Vec<String>, payload_len: u16) -> Packet {
         let mut data: Vec<u8> = Vec::new();
         for s in &layers {
@@ -150,12 +144,6 @@ impl Packet {
             data,
             payload_len,
         }
-    }
-    #[deprecated]
-    fn push1(&mut self, name: &str, layer: Hdr) {
-        self.buffer.insert(String::from(name), layer);
-        self.layers.push(String::from(name));
-        self.data.extend_from_slice(&self.buffer[name].as_slice());
     }
     pub fn push(&mut self, layer: impl Header) {
         self.buffer

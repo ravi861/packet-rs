@@ -245,9 +245,8 @@ mod tests {
             100,
         );
         pkt.show();
-        let y: &mut Box<dyn Header> = pkt.get_header_mut("Ethernet");
-        let x: &mut Ethernet<Vec<u8>> = Ethernet::<Vec<u8>>::to_concrete_mut(y);
-        x.show();
+        let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
+        let x: &mut Ethernet<Vec<u8>> = Ethernet::<Vec<u8>>::to_concrete_mut(x);
         x.set_etype(0x86dd);
         x.show();
         pkt.refresh();
