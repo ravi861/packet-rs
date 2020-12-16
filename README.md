@@ -83,6 +83,7 @@ pkt.show()
 dst                 :   48 : 00 01 02 03 04 05
 src                 :   48 : 00 06 07 08 09 0a
 etype               :   16 : 08 00
+#### IPv4             Size   Data
 -------------------------------------------
 version             :    4 : 04
 ihl                 :    4 : 05
@@ -96,4 +97,12 @@ protocol            :    8 : 06
 header_checksum     :   16 : fa ec
 src                 :   32 : c0 a8 00 01
 dst                 :   32 : c0 a8 00 02
+
+// access ethernet header immutable
+let y: &Ethernet<Vec<u8>> = (&pkt["Ethernet"]).into();
+println!("{}", x.etype());
+
+// access ethernet header mutable
+let x: &mut Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
+x.set_etype(0x1111);
 ```
