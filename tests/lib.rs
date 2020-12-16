@@ -269,7 +269,7 @@ mod tests {
         println!("{}", x.etype());
         x.show();
 
-        let y: &Ethernet<Vec<u8>> = (&pkt["Ethernet"]).into();
+        let x: &Ethernet<Vec<u8>> = (&pkt["Ethernet"]).into();
         println!("{}", x.etype());
         x.show();
 

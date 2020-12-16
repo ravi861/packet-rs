@@ -45,30 +45,54 @@ pub const ETHERTYPE_ARP: u16 = 0x0806;
 pub const ETHERTYPE_DOT1Q: u16 = 0x8100;
 pub const ETHERTYPE_IPV6: u16 = 0x86DD;
 
+pub const MAC_LEN: usize = 6;
+pub const IPV4_LEN: usize = 4;
+pub const IPV6_LEN: usize = 16;
+
 pub trait ConvertToBytes {
-    fn to_mac_bytes(&self) -> [u8; 6];
-    fn to_ipv4_bytes(&self) -> [u8; 4];
-    fn to_ipv6_bytes(&self) -> [u8; 16];
+    fn to_mac_bytes(&self) -> [u8; MAC_LEN];
+    fn to_ipv4_bytes(&self) -> [u8; IPV4_LEN];
+    fn to_ipv6_bytes(&self) -> [u8; IPV6_LEN];
 }
 
 impl ConvertToBytes for str {
-    fn to_mac_bytes(&self) -> [u8; 6] {
-        let mut mac: [u8; 6] = [0, 0, 0, 0, 0, 0];
+    fn to_mac_bytes(&self) -> [u8; MAC_LEN] {
+        let mut mac: [u8; MAC_LEN] = [0, 0, 0, 0, 0, 0];
         for (i, v) in self.split(":").enumerate() {
-            mac[i] = u8::from_str_radix(v, 16).unwrap();
+            let x = u8::from_str_radix(v, 16);
+            mac[i] = match x {
+                Ok(x) => x,
+                Err(e) => {
+                    println!("Error: {} - {} in {}", e, v, self);
+                    0
+                }
+            };
         }
         mac
     }
-    fn to_ipv4_bytes(&self) -> [u8; 4] {
-        let mut ipv4: [u8; 4] = [0, 0, 0, 0];
+    fn to_ipv4_bytes(&self) -> [u8; IPV4_LEN] {
+        let mut ipv4: [u8; IPV4_LEN] = [0, 0, 0, 0];
         for (i, v) in self.split(".").enumerate() {
-            ipv4[i] = u8::from_str_radix(v, 10).unwrap();
+            let x = u8::from_str_radix(v, 10);
+            ipv4[i] = match x {
+                Ok(x) => x,
+                Err(e) => {
+                    println!("Error: {} - {} in {}", e, v, self);
+                    0
+                }
+            };
         }
         ipv4
     }
-    fn to_ipv6_bytes(&self) -> [u8; 16] {
-        let x = Ipv6Addr::from_str(self).unwrap();
-        x.octets()
+    fn to_ipv6_bytes(&self) -> [u8; IPV6_LEN] {
+        let x = Ipv6Addr::from_str(self);
+        match x {
+            Ok(x) => x.octets(),
+            Err(e) => {
+                println!("Error: {} - {}", e, self);
+                [0; IPV6_LEN]
+            }
+        }
     }
 }
 
@@ -331,9 +355,25 @@ fn ipv6_1() {
     let _x = s.to_ipv6_bytes();
     let s = String::from("ffff::0");
     let _x = s.to_ipv6_bytes();
+    let s = String::from("ffff:ffff:0");
+    let _x = s.to_ipv6_bytes();
+    let s = String::from("ffff::z");
+    let _x = s.to_ipv6_bytes();
 }
 #[test]
 fn ipv4_1() {
     let s = "10.10.10.1";
     println!("{:?}", s.to_ipv4_bytes());
+    let s = "10.10.10.1000";
+    println!("{:?}", s.to_ipv4_bytes());
+    let s = "10.10.10.ff";
+    println!("{:?}", s.to_ipv4_bytes());
+}
+
+#[test]
+fn mac_1() {
+    let s = "ff:ff:ff:ff:ff:ff";
+    println!("{:02x?}", s.to_mac_bytes());
+    let s = "ff:ff:ff:ff:ff:123";
+    println!("{:02x?}", s.to_mac_bytes());
 }
