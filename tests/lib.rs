@@ -246,7 +246,7 @@ mod tests {
         );
         pkt.show();
         let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
-        let x: &mut Ethernet<Vec<u8>> = Ethernet::<Vec<u8>>::to_concrete_mut(x);
+        let x: &mut Ethernet<Vec<u8>> = x.into();
         x.set_etype(0x86dd);
         x.show();
         pkt.refresh();
@@ -259,11 +259,6 @@ mod tests {
 
         // immutable
         let y: &Box<dyn Header> = &pkt["Ethernet"];
-        let x: &Ethernet<Vec<u8>> = Ethernet::<Vec<u8>>::to_concrete(y);
-        println!("{}", x.etype());
-        x.show();
-
-        let y: &Box<dyn Header> = &pkt["Ethernet"];
         let x: &Ethernet<Vec<u8>> = y.into();
         println!("{}", x.etype());
         x.show();
@@ -273,11 +268,6 @@ mod tests {
         x.show();
 
         // mutable
-        let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
-        let x: &mut Ethernet<Vec<u8>> = Ethernet::<Vec<u8>>::to_concrete_mut(x);
-        x.set_etype(0x800);
-        x.show();
-
         let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
         let x: &mut Ethernet<Vec<u8>> = x.into();
         x.set_etype(0x9999);

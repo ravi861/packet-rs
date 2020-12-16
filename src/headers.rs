@@ -120,20 +120,6 @@ macro_rules! make_header {
                 pub fn as_slice(&self) -> &[u8] {
                     self.0.as_ref()
                 }
-                pub fn to_concrete<'a>(x: &'a Box<dyn Header>) -> &'a $name<Vec<u8>> {
-                    let b: & $name<Vec<u8>> = match x.as_any().downcast_ref::<$name<Vec<u8>>>() {
-                        Some(b) => b,
-                        None => panic!("Header is not a {}", stringify!($name)),
-                    };
-                    b
-                }
-                pub fn to_concrete_mut<'a>(x: &'a mut Box<dyn Header>) -> &'a mut $name<Vec<u8>> {
-                    let b = match x.as_any_mut().downcast_mut::<$name<Vec<u8>>>() {
-                        Some(b) => b,
-                        None => panic!("Header is not a {}", stringify!($name)),
-                    };
-                    b
-                }
             }
             impl<'a> Into<&'a mut $name<Vec<u8>>> for &'a mut Box<dyn Header> {
                 fn into(self) -> &'a mut $name<Vec<u8>> {
