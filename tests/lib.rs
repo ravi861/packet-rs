@@ -10,29 +10,36 @@ mod tests {
 
     #[test]
     fn set_header_octets_test() {
-        let mut ips = Vec::new();
-        ips.push(String::from("FFFF::FFFF").to_ipv6_bytes());
-        ips.push(String::from("7FFF::FFFF").to_ipv6_bytes());
-        ips.push(String::from("FFF7::FFFF").to_ipv6_bytes());
-        ips.push(String::from("FFFF::FFF7").to_ipv6_bytes());
-        ips.push(String::from("FFFF::7FFF").to_ipv6_bytes());
-        ips.push(String::from("1111::FFFF").to_ipv6_bytes());
-        ips.push(String::from("8888::FFFF").to_ipv6_bytes());
-        ips.push(String::from("FFFF::1111").to_ipv6_bytes());
-        ips.push(String::from("FFFF::8888").to_ipv6_bytes());
-        ips.push(String::from("8888::1111").to_ipv6_bytes());
-        ips.push(String::from("2001:3001:4001::FFFF").to_ipv6_bytes());
-        ips.push(String::from("FFFF:4001:3001::2001").to_ipv6_bytes());
-        ips.push(String::from("FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF").to_ipv6_bytes());
-        ips.push(String::from("1111:1111:1111:1111:1111:1111:1111:1111").to_ipv6_bytes());
-        ips.push(String::from("8888:8888:8888:8888:8888:8888:8888:8888").to_ipv6_bytes());
-        ips.push(String::from("FFFF:4001:3001:2001:2001:3001:4001:FFFF").to_ipv6_bytes());
-        ips.push(String::from("2001:3001:4001:FFFF:FFFF:4001:3001:2001").to_ipv6_bytes());
+        let mut dips = Vec::new();
+        dips.push(String::from("FFFF::FFFF").to_ipv6_bytes());
+        dips.push(String::from("7FFF::FFFF").to_ipv6_bytes());
+        dips.push(String::from("FFF7::FFFF").to_ipv6_bytes());
+        dips.push(String::from("FFFF::FFF7").to_ipv6_bytes());
+        dips.push(String::from("FFFF::7FFF").to_ipv6_bytes());
+        dips.push(String::from("1111::FFFF").to_ipv6_bytes());
+        dips.push(String::from("8888::FFFF").to_ipv6_bytes());
+        dips.push(String::from("FFFF::1111").to_ipv6_bytes());
+        dips.push(String::from("FFFF::8888").to_ipv6_bytes());
+        dips.push(String::from("8888::1111").to_ipv6_bytes());
+        dips.push(String::from("2001:3001:4001::FFFF").to_ipv6_bytes());
+        dips.push(String::from("FFFF:4001:3001::2001").to_ipv6_bytes());
+        dips.push(String::from("FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF").to_ipv6_bytes());
+        dips.push(String::from("1111:1111:1111:1111:1111:1111:1111:1111").to_ipv6_bytes());
+        dips.push(String::from("8888:8888:8888:8888:8888:8888:8888:8888").to_ipv6_bytes());
+        dips.push(String::from("FFFF:4001:3001:2001:2001:3001:4001:FFFF").to_ipv6_bytes());
+        dips.push(String::from("2001:3001:4001:FFFF:FFFF:4001:3001:2001").to_ipv6_bytes());
+        let sips = dips.clone();
 
         let mut ipv6 = IPv6::new();
-        for a in ips {
+        for a in dips {
             ipv6.set_bytes(IPv6::<Vec<u8>>::dst_msb(), IPv6::<Vec<u8>>::dst_lsb(), &a);
             let b = ipv6.get_bytes(IPv6::<Vec<u8>>::dst_msb(), IPv6::<Vec<u8>>::dst_lsb());
+            let b = b.as_slice();
+            assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 16);
+        }
+        for a in sips {
+            ipv6.set_bytes(IPv6::<Vec<u8>>::src_msb(), IPv6::<Vec<u8>>::src_lsb(), &a);
+            let b = ipv6.get_bytes(IPv6::<Vec<u8>>::src_msb(), IPv6::<Vec<u8>>::src_lsb());
             let b = b.as_slice();
             assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 16);
         }
@@ -116,8 +123,101 @@ mod tests {
         ipv6.as_slice();
         ipv6.show();
     }
+
     #[test]
     fn create_packet_test() {
+        let _pkt = rscapy::create_tcp_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "10.10.10.1",
+            "11.11.11.1",
+            0,
+            64,
+            115,
+            0,
+            Vec::new(),
+            80,
+            9090,
+            100,
+            101,
+            0,
+            0,
+            1,
+            0,
+            0,
+            false,
+            100,
+        );
+        // pkt.show();
+
+        let _pkt = rscapy::create_udp_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "192.168.0.199",
+            "192.168.0.1",
+            0,
+            64,
+            0,
+            0x4000,
+            Vec::new(),
+            80,
+            9090,
+            false,
+            129,
+        );
+        // pkt.show();
+
+        let _pkt = rscapy::create_tcpv6_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            4,
+            64,
+            "AAAA::1",
+            "BBBB::1",
+            80,
+            9090,
+            100,
+            101,
+            0,
+            0,
+            1,
+            0,
+            0,
+            100,
+        );
+        // pkt.show();
+
+        let _pkt = rscapy::create_udpv6_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            4,
+            64,
+            "AAAA::1",
+            "BBBB::1",
+            80,
+            9090,
+            129,
+        );
+        // pkt.show();
+    }
+    #[test]
+    fn update_packet_test() {
         let mut pkt = rscapy::create_tcp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
@@ -158,66 +258,34 @@ mod tests {
         assert_eq!(true, pkt.compare(&new_pkt));
         assert_eq!(true, pkt.compare_with_slice(new_pkt.as_slice()));
 
-        let pkt = rscapy::create_udp_packet(
-            "00:01:02:03:04:05",
-            "00:06:07:08:09:0a",
-            false,
-            10,
-            3,
-            5,
-            "192.168.0.199",
-            "192.168.0.1",
-            0,
-            64,
-            0,
-            0x4000,
-            Vec::new(),
-            80,
-            9090,
-            false,
-            129,
-        );
-        // pkt.show();
+        // immutable
+        let y: &Box<dyn Header> = &pkt["Ethernet"];
+        let x: &Ethernet<Vec<u8>> = Ethernet::<Vec<u8>>::to_concrete(y);
+        println!("{}", x.etype());
+        x.show();
 
-        let pkt = rscapy::create_tcpv6_packet(
-            "00:01:02:03:04:05",
-            "00:06:07:08:09:0a",
-            false,
-            10,
-            3,
-            5,
-            4,
-            64,
-            "AAAA::1",
-            "BBBB::1",
-            80,
-            9090,
-            100,
-            101,
-            0,
-            0,
-            1,
-            0,
-            0,
-            100,
-        );
-        // pkt.show();
+        let y: &Box<dyn Header> = &pkt["Ethernet"];
+        let x: &Ethernet<Vec<u8>> = y.into();
+        println!("{}", x.etype());
+        x.show();
 
-        let pkt = rscapy::create_udpv6_packet(
-            "00:01:02:03:04:05",
-            "00:06:07:08:09:0a",
-            false,
-            10,
-            3,
-            5,
-            4,
-            64,
-            "AAAA::1",
-            "BBBB::1",
-            80,
-            9090,
-            129,
-        );
-        // pkt.show();
+        let y: &Ethernet<Vec<u8>> = (&pkt["Ethernet"]).into();
+        println!("{}", x.etype());
+        x.show();
+
+        // mutable
+        let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
+        let x: &mut Ethernet<Vec<u8>> = Ethernet::<Vec<u8>>::to_concrete_mut(x);
+        x.set_etype(0x800);
+        x.show();
+
+        let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
+        let x: &mut Ethernet<Vec<u8>> = x.into();
+        x.set_etype(0x9999);
+        x.show();
+
+        let x: &mut Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
+        x.set_etype(0x1111);
+        x.show();
     }
 }

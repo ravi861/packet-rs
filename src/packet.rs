@@ -1,3 +1,4 @@
+use std::ops::{Index, IndexMut};
 use std::{collections::HashMap, net::Ipv6Addr, str::FromStr};
 
 use crate::headers::*;
@@ -81,6 +82,20 @@ pub struct Packet {
     payload_len: u16,
 }
 
+impl Index<&str> for Packet {
+    type Output = Hdr;
+
+    fn index<'a>(&'a self, index: &str) -> &'a Hdr {
+        &self.buffer[index]
+    }
+}
+
+impl IndexMut<&str> for Packet {
+    fn index_mut<'a>(&'a mut self, index: &str) -> &'a mut Hdr {
+        self.buffer.get_mut(index).unwrap()
+    }
+}
+
 impl Packet {
     pub fn new() -> Packet {
         Packet {
@@ -89,6 +104,12 @@ impl Packet {
             data: Vec::new(),
             payload_len: 0,
         }
+    }
+    pub fn get_header(&self, name: &str) -> &Hdr {
+        &self.buffer[name]
+    }
+    pub fn get_header_mut(&mut self, name: &str) -> &mut Hdr {
+        self.buffer.get_mut(name).unwrap()
     }
     pub fn from(buffer: Pbuff, layers: Vec<String>, payload_len: u16) -> Packet {
         let mut data: Vec<u8> = Vec::new();
@@ -199,12 +220,6 @@ impl Packet {
     }
     pub fn as_slice(&self) -> &[u8] {
         self.data.as_slice()
-    }
-    pub fn get_header(&self, name: &str) -> &Hdr {
-        &self.buffer[name]
-    }
-    pub fn get_header_mut(&mut self, name: &str) -> &mut Hdr {
-        self.buffer.get_mut(name).unwrap()
     }
 }
 
