@@ -43,11 +43,11 @@ vec![0x0, 0xa, 0x8, 0x0]      // <= optional default data
 3 ways to create a header
 -------------------------
 ```rust
-// Pass a data buffer as an argument
-let vlan = Vlan([0x00, 0x0a, 0x08, 0x10]);
-
 // Call new on the vlan header
 let vlan = Vlan::new();
+
+// Pass a data buffer as an argument
+let vlan = Vlan([0x00, 0x0a, 0x08, 0x10]);
 
 // Use an associate function from Packet struct
 let vlan = Packet::vlan(2, 1, 10, 0x086dd);
