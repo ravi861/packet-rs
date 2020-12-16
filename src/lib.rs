@@ -152,7 +152,7 @@ pub fn create_tcp_packet(
     );
     pkt.push(tcp);
 
-    pkt.payload(l4_len - TCP_HDR_LEN);
+    pkt.payload((l4_len - TCP_HDR_LEN) as usize);
     pkt
 }
 
@@ -199,7 +199,7 @@ pub fn create_udp_packet(
     let udp = Packet::udp(udp_src, udp_dst, l4_len);
     pkt.push(udp);
 
-    pkt.payload(l4_len - UDP_HDR_LEN);
+    pkt.payload((l4_len - UDP_HDR_LEN) as usize);
     pkt
 }
 
@@ -258,7 +258,7 @@ pub fn create_tcpv6_packet(
     );
     pkt.push(tcp);
 
-    pkt.payload(l4_len - TCP_HDR_LEN);
+    pkt.payload((l4_len - TCP_HDR_LEN) as usize);
     pkt
 }
 
@@ -298,6 +298,6 @@ pub fn create_udpv6_packet(
     let udp = Packet::udp(udp_src, udp_dst, l4_len);
     pkt.push(udp);
 
-    pkt.payload(l4_len - UDP_HDR_LEN);
+    pkt.payload((l4_len - UDP_HDR_LEN) as usize);
     pkt
 }

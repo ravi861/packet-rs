@@ -19,7 +19,7 @@ fn create_conn(intf: &str) -> (Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver
         .next()
         .unwrap();
     // Create a new channel, dealing with layer 2 packets
-    let (mut tx, mut rx) = match datalink::channel(&interface, Default::default()) {
+    let (tx, rx) = match datalink::channel(&interface, Default::default()) {
         Ok(Ethernet(tx, rx)) => (tx, rx),
         Ok(_) => panic!("Unhandled channel type"),
         Err(e) => panic!(
@@ -49,6 +49,7 @@ fn verify_packet(rx: &mut Box<dyn DataLinkReceiver + 'static>, pkt: &Packet) {
 }
 
 #[test]
+#[ignore]
 fn test_send_packet() {
     let pkt = crate::create_tcp_packet(
         "00:11:11:11:11:11",
@@ -83,7 +84,7 @@ fn test_send_packet() {
     // this is a vector because pnet returns packet as a slice
     let (mtx, mrx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::channel();
 
-    let handle = thread::spawn(move || {
+    let _handle = thread::spawn(move || {
         loop {
             match rx.next() {
                 Ok(packet) => {
@@ -99,7 +100,7 @@ fn test_send_packet() {
     });
     let start = Instant::now();
     let cnt = 100;
-    for i in 0..cnt {
+    for _ in 0..cnt {
         send_packet(&mut tx, &pkt);
         let p = mrx.recv().unwrap();
         assert!(pkt.compare_with_slice(p.as_slice()));
@@ -107,5 +108,112 @@ fn test_send_packet() {
     let duration = start.elapsed();
     println!("Time elapsed for {} packets is: {:?}", cnt, duration);
 
+    // _handle.join().unwrap();
+}
+
+#[test]
+fn packet_gen_test() {
+    let (tx, rx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::channel();
+    let (mtx, mrx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::channel();
+
+    // ping packets on different channels
+    thread::spawn(move || loop {
+        match rx.recv_timeout(Duration::from_millis(10)) {
+            Ok(pkt) => mtx.send(Vec::from(pkt)).unwrap(),
+            Err(_) => break,
+        };
+    });
+
+    let mut pkt = crate::create_tcp_packet(
+        "00:11:11:11:11:11",
+        "00:06:07:08:09:0a",
+        false,
+        10,
+        3,
+        5,
+        "10.10.10.1",
+        "11.11.11.1",
+        0,
+        64,
+        115,
+        0,
+        Vec::new(),
+        8888,
+        9090,
+        100,
+        101,
+        5,
+        0,
+        2,
+        0,
+        0,
+        false,
+        100,
+    );
+    // same packet in every iteration
+    let start = Instant::now();
+    let cnt = 100000;
+    for _ in 0..cnt {
+        tx.send(Vec::from(pkt.data.as_slice())).unwrap();
+        mrx.recv().unwrap();
+    }
+    let duration = start.elapsed();
+    println!("Time elapsed for {} packets is: {:?}", cnt, duration);
+
+    // new packet in every iteration
+    let start = Instant::now();
+    for _ in 0..cnt {
+        let pkt = crate::create_tcp_packet(
+            "00:11:11:11:11:11",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "10.10.10.1",
+            "11.11.11.1",
+            0,
+            64,
+            115,
+            0,
+            Vec::new(),
+            8888,
+            9090,
+            100,
+            101,
+            5,
+            0,
+            2,
+            0,
+            0,
+            false,
+            100,
+        );
+        tx.send(pkt.data).unwrap();
+        mrx.recv().unwrap();
+    }
+    let duration = start.elapsed();
+    println!("Time elapsed for {} packets is: {:?}", cnt, duration);
+
+    // clone packet in each iteration
+    let start = Instant::now();
+    for _ in 0..cnt {
+        tx.send(pkt.clone().data).unwrap();
+        mrx.recv().unwrap();
+    }
+    let duration = start.elapsed();
+    println!("Time elapsed for {} packets is: {:?}", cnt, duration);
+
+    // update packet and then clone in each iteration
+    let start = Instant::now();
+    for i in 0..cnt {
+        let x: &mut crate::headers::Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
+        x.set_etype(i % 0xFFFF);
+        pkt.refresh();
+        tx.send(pkt.clone().data).unwrap();
+        mrx.recv().unwrap();
+    }
+    let duration = start.elapsed();
+    println!("Time elapsed for {} packets is: {:?}", cnt, duration);
     //handle.join().unwrap();
 }

@@ -123,7 +123,6 @@ mod tests {
         ipv6.as_slice();
         ipv6.show();
     }
-
     #[test]
     fn create_packet_test() {
         let _pkt = rscapy::create_tcp_packet(

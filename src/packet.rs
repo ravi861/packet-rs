@@ -103,7 +103,7 @@ pub struct Packet {
     buffer: Pbuff,
     layers: Vec<String>,
     pub data: Vec<u8>,
-    payload_len: u16,
+    payload_len: usize,
 }
 
 impl Index<&str> for Packet {
@@ -129,14 +129,14 @@ impl Packet {
             payload_len: 0,
         }
     }
-    pub fn from(buffer: Pbuff, layers: Vec<String>, payload_len: u16) -> Packet {
+    pub fn from(buffer: Pbuff, layers: Vec<String>, payload_len: usize) -> Packet {
         let mut data: Vec<u8> = Vec::new();
         for s in &layers {
             data.extend_from_slice(&buffer[s].as_slice());
         }
         if payload_len > 0 {
-            let payload: Vec<u8> = (0..payload_len as u8).map(|x| x).collect();
-            data.extend_from_slice(&payload);
+            let mut payload: Vec<u8> = (0..payload_len as u8).map(|x| x).collect();
+            data.append(&mut payload);
         }
         Packet {
             buffer,
@@ -152,27 +152,26 @@ impl Packet {
         self.data
             .extend_from_slice(&self.buffer[layer.name()].as_slice());
     }
-    fn rebuild_data(&mut self) {
+    pub fn refresh(&mut self) {
         self.data.clear();
         for s in &self.layers {
             self.data.extend_from_slice(&self.buffer[s].as_slice());
         }
         if self.payload_len > 0 {
-            let payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
-            self.data.extend_from_slice(&payload);
+            let mut payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
+            self.data.append(&mut payload);
         }
-    }
-    pub fn refresh(&mut self) {
-        self.rebuild_data();
     }
     pub fn pop(&mut self) {
         let name = self.layers.pop();
         self.buffer.remove(name.unwrap().as_str());
-        self.rebuild_data();
+        self.refresh();
     }
-    pub fn payload(&mut self, len: u16) {
-        let payload: Vec<u8> = (0..len as u8).map(|x| x).collect();
-        self.data.extend_from_slice(&payload);
+    #[inline]
+    pub fn payload(&mut self, len: usize) {
+        let mut payload: Vec<u8> = (0..len as u8).map(|x| x).collect();
+        //self.data.extend_from_slice(&payload);
+        self.data.append(&mut payload);
         self.payload_len = len;
     }
     pub fn clone(&self) -> Packet {
