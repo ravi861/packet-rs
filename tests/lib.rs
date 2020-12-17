@@ -57,7 +57,7 @@ mod tests {
         );
         let data: Vec<u8> = vec![0; 10];
         let mut my_header = MyOwnHeader(data);
-        my_header.bytes();
+        my_header.as_slice();
         my_header.show();
 
         my_header.set_bytes_1(0x22);

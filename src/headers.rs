@@ -96,16 +96,6 @@ macro_rules! make_header {
                     println!();
                     )*
                 }
-                fn bytes(&self) {
-                    for i in (0..$size*8).step_by(8) {
-                        let x: u8 = self.bit_range(i + 7, i);
-                        print!("{:02x} ", x);
-                        if (i == 120) {
-                            println!();
-                        }
-                    }
-                    println!();
-                }
                 pub fn clone(&self) -> $name<Vec<u8>> {
                     $name(Vec::from(self.0.as_ref()))
                 }

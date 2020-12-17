@@ -188,16 +188,7 @@ impl Packet {
         pkt
     }
     pub fn compare(&self, pkt: &Packet) -> bool {
-        if self.data.len() != pkt.data.len() {
-            return false;
-        }
-        let a = self.data.as_slice();
-        let b = pkt.data.as_slice();
-        let matching = a.iter().zip(b).filter(|&(a, b)| a == b).count();
-        if self.data.len() != matching || pkt.data.len() != matching {
-            return false;
-        }
-        true
+        self.compare_with_slice(pkt.as_slice())
     }
     #[inline]
     pub fn compare_with_slice(&self, b: &[u8]) -> bool {
@@ -215,7 +206,7 @@ impl Packet {
         for s in &self.layers {
             self.buffer[s.as_str()].show();
         }
-        println!("\n#### {} ####", "packet");
+        println!("\n#### raw ####");
         let mut x = 0;
         for i in self.data.as_slice() {
             print!("{:02x} ", i);
