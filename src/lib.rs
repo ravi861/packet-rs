@@ -23,7 +23,7 @@ fn ipv4_packet(
     ip_ttl: u8,
     ip_id: u16,
     ip_frag: u16,
-    ip_options: Vec<u8>,
+    _ip_options: Vec<u8>,
     pktlen: u16,
 ) -> Packet {
     let mut pkt = Packet::new();
@@ -113,7 +113,7 @@ pub fn create_tcp_packet(
     tcp_flags: u8,
     tcp_window: u16,
     tcp_urgent_ptr: u16,
-    tcp_checksum: bool,
+    _tcp_checksum: bool,
     pktlen: u16,
 ) -> Packet {
     let mut pkt = ipv4_packet(
@@ -172,7 +172,7 @@ pub fn create_udp_packet(
     ip_options: Vec<u8>,
     udp_dst: u16,
     udp_src: u16,
-    udp_checksum: bool,
+    _udp_checksum: bool,
     pktlen: u16,
 ) -> Packet {
     let mut pkt = ipv4_packet(
