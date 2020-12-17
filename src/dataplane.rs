@@ -157,8 +157,7 @@ fn packet_gen_test() {
         tx.send(Vec::from(pkt.data.as_slice())).unwrap();
         mrx.recv().unwrap();
     }
-    let duration = start.elapsed();
-    println!("Time elapsed for {} packets is: {:?}", cnt, duration);
+    println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
 
     // new packet in every iteration
     let start = Instant::now();
@@ -192,8 +191,7 @@ fn packet_gen_test() {
         tx.send(pkt.data).unwrap();
         mrx.recv().unwrap();
     }
-    let duration = start.elapsed();
-    println!("Time elapsed for {} packets is: {:?}", cnt, duration);
+    println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
 
     // clone packet in each iteration
     let start = Instant::now();
@@ -201,8 +199,7 @@ fn packet_gen_test() {
         tx.send(pkt.clone().data).unwrap();
         mrx.recv().unwrap();
     }
-    let duration = start.elapsed();
-    println!("Time elapsed for {} packets is: {:?}", cnt, duration);
+    println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
 
     // update packet and then clone in each iteration
     let start = Instant::now();
@@ -213,7 +210,6 @@ fn packet_gen_test() {
         tx.send(pkt.clone().data).unwrap();
         mrx.recv().unwrap();
     }
-    let duration = start.elapsed();
-    println!("Time elapsed for {} packets is: {:?}", cnt, duration);
+    println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
     //handle.join().unwrap();
 }

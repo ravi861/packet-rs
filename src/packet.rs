@@ -149,8 +149,7 @@ impl Packet {
         self.buffer
             .insert(String::from(layer.name()), layer.clone());
         self.layers.push(String::from(layer.name()));
-        self.data
-            .extend_from_slice(&self.buffer[layer.name()].as_slice());
+        self.data.extend_from_slice(&layer.as_slice());
     }
     pub fn refresh(&mut self) {
         self.data.clear();
@@ -170,7 +169,6 @@ impl Packet {
     #[inline]
     pub fn payload(&mut self, len: usize) {
         let mut payload: Vec<u8> = (0..len as u8).map(|x| x).collect();
-        //self.data.extend_from_slice(&payload);
         self.data.append(&mut payload);
         self.payload_len = len;
     }
@@ -185,8 +183,8 @@ impl Packet {
         for s in &self.layers {
             pkt.data.extend_from_slice(&pkt.buffer[s].as_slice());
         }
-        let payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
-        pkt.data.extend_from_slice(&payload);
+        let mut payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
+        pkt.data.append(&mut payload);
         pkt
     }
     pub fn compare(&self, pkt: &Packet) -> bool {
@@ -219,7 +217,7 @@ impl Packet {
         }
         println!("\n#### {} ####", "packet");
         let mut x = 0;
-        for i in &self.data {
+        for i in self.data.as_slice() {
             print!("{:02x} ", i);
             x += 1;
             if x % 16 == 0 {

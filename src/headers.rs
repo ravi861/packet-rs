@@ -107,15 +107,7 @@ macro_rules! make_header {
                     println!();
                 }
                 pub fn clone(&self) -> $name<Vec<u8>> {
-                    $name(self.raw())
-                }
-                fn raw(&self) -> Vec<u8> {
-                    // let mut x: [u8; $size] = [0; $size];
-                    let mut x: Vec<u8> = vec![0; $size];
-                    for i in (0..$size*8).step_by(8) {
-                        x[i/8] = self.bit_range(i + 7, i);
-                    }
-                    x
+                    $name(Vec::from(self.0.as_ref()))
                 }
                 pub fn as_slice(&self) -> &[u8] {
                     self.0.as_ref()
