@@ -154,7 +154,7 @@ fn packet_gen_test() {
     let start = Instant::now();
     let cnt = 100000;
     for _ in 0..cnt {
-        tx.send(Vec::from(pkt.data.as_slice())).unwrap();
+        tx.send(pkt.to_vec()).unwrap();
         mrx.recv().unwrap();
     }
     println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
@@ -188,7 +188,7 @@ fn packet_gen_test() {
             false,
             100,
         );
-        tx.send(pkt.data).unwrap();
+        tx.send(pkt.to_vec()).unwrap();
         mrx.recv().unwrap();
     }
     println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
@@ -196,7 +196,7 @@ fn packet_gen_test() {
     // clone packet in each iteration
     let start = Instant::now();
     for _ in 0..cnt {
-        tx.send(pkt.clone().data).unwrap();
+        tx.send(pkt.clone().to_vec()).unwrap();
         mrx.recv().unwrap();
     }
     println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
@@ -207,7 +207,7 @@ fn packet_gen_test() {
         let x: &mut crate::headers::Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
         x.set_etype(i % 0xFFFF);
         pkt.refresh();
-        tx.send(pkt.clone().data).unwrap();
+        tx.send(pkt.clone().to_vec()).unwrap();
         mrx.recv().unwrap();
     }
     println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());

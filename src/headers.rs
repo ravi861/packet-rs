@@ -1,6 +1,10 @@
+#[doc(hidden)]
 pub use ::bitfield::bitfield;
+#[doc(hidden)]
 pub use ::bitfield::BitRange;
+#[doc(hidden)]
 pub use paste::paste;
+#[doc(hidden)]
 pub use std::any::Any;
 
 pub trait Header {
@@ -12,12 +16,40 @@ pub trait Header {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
+/// Declares a networking header
+///
+/// This macro will generate get and set methods for each field of the header.
+/// In addition, each header will also come with the `Header` trait implemented.
+/// Finally, a few associate functions are provided for ease of use.
+///
+/// The macro's syntax is composed of 3 sections
+/// * A header name followed by the total size in bytes
+/// * This is followed by a comma separated field list with each field specifying the name, start and end bit location
+/// * Lastly, an optional vector is allowed to specify the default values of the header fields. The size of the vector has to match the header length
+///
+/// # Example
+///
+/// ```rust
+/// # #[macro_use] extern crate rscapy;
+/// # use rscapy::headers::*;
+/// # fn main() {}
+/// make_header!(
+/// Vlan 4
+/// (
+///     pcp: 0-2,
+///     cfi: 3-3,
+///     vid: 4-15,
+///     etype: 16-31
+/// )
+/// vec![0x0, 0xa, 0x8, 0x0]
+/// );
+/// ```
 #[macro_export]
 macro_rules! make_header {
     (
-        $name: ident $size: literal,
+        $name: ident $size: literal
         ( $($field: ident: $start: literal-$end: literal),* )
-        $x:expr;
+        $x:expr
     ) => {
         paste! {
             bitfield! {
@@ -148,20 +180,20 @@ macro_rules! make_header {
         ( $($field: ident: $start: literal-$end: literal),* )
     ) => {
         make_header!(
-            $name $size,
+            $name $size
             (
                 $(
                     $field: $start-$end
                 ),*
             )
-            vec![0; $size];
+            vec![0; $size]
         );
     };
 }
 
 // ethernet header
 make_header!(
-Ethernet 14,
+Ethernet 14
 (
     dst: 0-47,
     src: 48-95,
@@ -169,24 +201,24 @@ Ethernet 14,
 )
 vec![0x0, 0x1, 0x2, 0x3, 0x4, 0x5,
      0x6, 0x7, 0x8, 0x9, 0xa, 0xb,
-     0x08, 0x00];
+     0x08, 0x00]
 );
 
 // vlan header
 make_header!(
-Vlan 4,
+Vlan 4
 (
     pcp: 0-2,
     cfi: 3-3,
     vid: 4-15,
     etype: 16-31
 )
-vec![0x0, 0xa, 0x08, 0x00];
+vec![0x0, 0xa, 0x08, 0x00]
 );
 
 // ipv4 header
 make_header!(
-IPv4 20,
+IPv4 20
 (
     version: 0-3,
     ihl: 4-7,
@@ -203,12 +235,12 @@ IPv4 20,
 )
 vec![0x45, 0x00, 0x00, 0x14, 0x00, 0x33, 0x40, 0xdd, 0x40, 0x06, 0xfa, 0xec,
      0xc0, 0xa8, 0x0, 0x1,
-     0xc0, 0xa8, 0x0, 0x2];
+     0xc0, 0xa8, 0x0, 0x2]
 );
 
 // ipv6 header
 make_header!(
-IPv6 40,
+IPv6 40
 (
     version: 0-3,
     traffic_class: 4-11,
@@ -221,12 +253,12 @@ IPv6 40,
 )
 vec![0x60, 0x00, 0x00, 0x00, 0x00, 0x2e, 0x06, 0x40,
      0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34,
-     0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x35];
+     0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x35]
 );
 
 // tcp header
 make_header!(
-TCP 20,
+TCP 20
 (
     src: 0-15,
     dst: 16-31,
@@ -240,17 +272,17 @@ TCP 20,
     urgent_ptr: 144-159
 )
 vec![0x04, 0xd2 , 0x00, 0x50, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-     0x50, 0x02, 0x20, 0x00, 0x0d, 0x2c, 0x0, 0x0];
+     0x50, 0x02, 0x20, 0x00, 0x0d, 0x2c, 0x0, 0x0]
 );
 
 // udp header
 make_header!(
-UDP 8,
+UDP 8
 (
     src: 0-15,
     dst: 16-31,
     length: 32-47,
     checksum: 48-63
 )
-vec![0x04, 0xd2 , 0x00, 0x50, 0x0, 0x0, 0x0, 0x0];
+vec![0x04, 0xd2 , 0x00, 0x50, 0x0, 0x0, 0x0, 0x0]
 );

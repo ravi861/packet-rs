@@ -96,13 +96,13 @@ impl ConvertToBytes for str {
     }
 }
 
-pub type Hdr = Box<dyn Header>;
-pub type Pbuff = HashMap<String, Hdr>;
+type Hdr = Box<dyn Header>;
+type Pbuff = HashMap<String, Hdr>;
 
 pub struct Packet {
     buffer: Pbuff,
     layers: Vec<String>,
-    pub data: Vec<u8>,
+    data: Vec<u8>,
     payload_len: usize,
 }
 
@@ -129,7 +129,7 @@ impl Packet {
             payload_len: 0,
         }
     }
-    pub fn from(buffer: Pbuff, layers: Vec<String>, payload_len: usize) -> Packet {
+    fn from(buffer: Pbuff, layers: Vec<String>, payload_len: usize) -> Packet {
         let mut data: Vec<u8> = Vec::new();
         for s in &layers {
             data.extend_from_slice(&buffer[s].as_slice());
@@ -151,6 +151,11 @@ impl Packet {
         self.layers.push(String::from(layer.name()));
         self.data.extend_from_slice(&layer.as_slice());
     }
+    pub fn pop(&mut self) {
+        let name = self.layers.pop();
+        self.buffer.remove(name.unwrap().as_str());
+        self.refresh();
+    }
     pub fn refresh(&mut self) {
         self.data.clear();
         for s in &self.layers {
@@ -161,31 +166,11 @@ impl Packet {
             self.data.append(&mut payload);
         }
     }
-    pub fn pop(&mut self) {
-        let name = self.layers.pop();
-        self.buffer.remove(name.unwrap().as_str());
-        self.refresh();
-    }
     #[inline]
     pub fn payload(&mut self, len: usize) {
         let mut payload: Vec<u8> = (0..len as u8).map(|x| x).collect();
         self.data.append(&mut payload);
         self.payload_len = len;
-    }
-    pub fn clone(&self) -> Packet {
-        let mut pkt = Packet::new();
-        for s in &self.layers {
-            pkt.layers.push(String::from(s));
-        }
-        for s in &self.layers {
-            pkt.buffer.insert(String::from(s), self.buffer[s].clone());
-        }
-        for s in &self.layers {
-            pkt.data.extend_from_slice(&pkt.buffer[s].as_slice());
-        }
-        let mut payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
-        pkt.data.append(&mut payload);
-        pkt
     }
     pub fn compare(&self, pkt: &Packet) -> bool {
         self.compare_with_slice(pkt.as_slice())
@@ -220,6 +205,24 @@ impl Packet {
     }
     pub fn as_slice(&self) -> &[u8] {
         self.data.as_slice()
+    }
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.data.clone()
+    }
+    pub fn clone(&self) -> Packet {
+        let mut pkt = Packet::new();
+        for s in &self.layers {
+            pkt.layers.push(String::from(s));
+        }
+        for s in &self.layers {
+            pkt.buffer.insert(String::from(s), self.buffer[s].clone());
+        }
+        for s in &self.layers {
+            pkt.data.extend_from_slice(&pkt.buffer[s].as_slice());
+        }
+        let mut payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
+        pkt.data.append(&mut payload);
+        pkt
     }
 }
 
