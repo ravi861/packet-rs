@@ -8,10 +8,10 @@ pub use paste::paste;
 pub use std::any::Any;
 
 pub trait Header {
+    fn name(&self) -> &str;
     fn show(&self);
     fn as_slice(&self) -> &[u8];
     fn clone(&self) -> Box<dyn Header>;
-    fn name(&self) -> &str;
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
@@ -19,7 +19,7 @@ pub trait Header {
 /// Declares a networking header
 ///
 /// This macro will generate get and set methods for each field of the header.
-/// In addition, each header will also come with the `Header` trait implemented.
+/// In addition, each header will also come with the [Header](headers/trait.Header.html) trait implemented.
 /// Finally, a few associate functions are provided for ease of use.
 ///
 /// The macro's syntax is composed of 3 sections

@@ -49,6 +49,7 @@ pub const MAC_LEN: usize = 6;
 pub const IPV4_LEN: usize = 4;
 pub const IPV6_LEN: usize = 16;
 
+#[doc(hidden)]
 pub trait ConvertToBytes {
     fn to_mac_bytes(&self) -> [u8; MAC_LEN];
     fn to_ipv4_bytes(&self) -> [u8; IPV4_LEN];
@@ -97,10 +98,9 @@ impl ConvertToBytes for str {
 }
 
 type Hdr = Box<dyn Header>;
-type Pbuff = HashMap<String, Hdr>;
 
 pub struct Packet {
-    buffer: Pbuff,
+    buffer: HashMap<String, Hdr>,
     layers: Vec<String>,
     data: Vec<u8>,
     payload_len: usize,
@@ -129,7 +129,7 @@ impl Packet {
             payload_len: 0,
         }
     }
-    fn from(buffer: Pbuff, layers: Vec<String>, payload_len: usize) -> Packet {
+    fn from(buffer: HashMap<String, Hdr>, layers: Vec<String>, payload_len: usize) -> Packet {
         let mut data: Vec<u8> = Vec::new();
         for s in &layers {
             data.extend_from_slice(&buffer[s].as_slice());
