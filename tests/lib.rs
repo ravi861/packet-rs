@@ -101,15 +101,21 @@ mod tests {
     fn vlan_header_test() {
         let vlan = Vlan::new();
         vlan.show();
+        assert_eq!(vlan.vid(), 0xa);
+        assert_eq!(vlan.etype(), 0x800);
 
-        let data = [0x00, 0x0a, 0x08, 0x00];
+        let data = [0x7f, 0xff, 0x08, 0x00];
         let vlan = Vlan(data);
         vlan.as_slice();
         vlan.show();
+        assert_eq!(vlan.vid(), 4095);
+        assert_eq!(vlan.pcp(), 3);
+        assert_eq!(vlan.cfi(), 1);
     }
     #[test]
     fn ip_header_test() {
         let ipv4 = IPv4::new();
+        ipv4.as_slice();
         ipv4.show();
 
         let data = [
@@ -117,17 +123,23 @@ mod tests {
             0x1, 0xb, 0xb, 0xb, 0x1,
         ];
         let ipv4 = IPv4(data);
-        ipv4.as_slice();
         ipv4.show();
 
         let ipv4 = Packet::ipv4(5, 10, 4, 64, 0xdd, 6, "10.10.10.1", "11.11.11.1", 86);
-        ipv4.show();
         assert_eq!(ipv4_checksum_verify(ipv4.as_slice()), 0);
 
         let data: Vec<u8> = vec![0; IPv6::<Vec<u8>>::size()];
         let ipv6 = IPv6(data);
         ipv6.as_slice();
         ipv6.show();
+    }
+    #[test]
+    fn vxlan_header_test() {
+        let vxlan = Vxlan::new();
+        vxlan.show();
+
+        assert_eq!(vxlan.flags(), 0x8);
+        assert_eq!(vxlan.vni(), 2000);
     }
     #[test]
     fn ip_checksum_test() {

@@ -111,7 +111,7 @@ impl Index<&str> for Packet {
     type Output = Hdr;
 
     fn index<'a>(&'a self, index: &str) -> &'a Hdr {
-        &self.buffer[index]
+        &self.buffer.get(index).unwrap()
     }
 }
 

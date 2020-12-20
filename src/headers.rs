@@ -18,7 +18,7 @@ pub trait Header {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-/// Declares a networking header
+/// Declares a header
 ///
 /// This macro will generate get and set methods for each field of the header.
 /// In addition, each header will also come with the [Header](headers/trait.Header.html) trait implemented.
@@ -113,7 +113,7 @@ macro_rules! make_header {
                     print!("{:20}: {:4} : ", stringify!($field), $end - $start + 1);
                     if (($end - $start + 1) <= 8) {
                         let x: u8 = self.bit_range($end, $start);
-                        print!("{:02}", x);
+                        print!("{:02x}", x);
                     } else if (($end - $start + 1)%8 == 0){
                         let d = ($end - $start + 1)/8;
                         for i in ($start..(d*8 + $start)).step_by(8) {
@@ -125,10 +125,10 @@ macro_rules! make_header {
                         let r = ($end - $start + 1)%8;
                         for i in ($start..(d*8 + $start)).step_by(8) {
                             let x: u8 = self.bit_range(i + 7, i);
-                            print!("{:02} ", x);
+                            print!("{:02x} ", x);
                         }
                         let x: u8 = self.bit_range($end, $end - r);
-                        print!("{:02}", x);
+                        print!("{:02x}", x);
                     }
                     println!();
                     )*
@@ -296,4 +296,16 @@ UDP 8
     checksum: 48-63
 )
 vec![0x04, 0xd2 , 0x00, 0x50, 0x0, 0x0, 0x0, 0x0]
+);
+
+// vxlan header
+make_header!(
+Vxlan 8
+(
+    flags: 0-7,
+    reserved: 8-31,
+    vni: 32-55,
+    reserved2: 56-63
+)
+vec![0x8, 0x0 , 0x0, 0x0, 0x0, 0x07, 0xd0, 0x0]
 );
