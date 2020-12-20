@@ -3,7 +3,7 @@ use std::{collections::HashMap, net::Ipv6Addr, str::FromStr};
 
 use crate::headers::*;
 
-fn ipv4_checksum(v: &Vec<u8>) -> u16 {
+fn ipv4_checksum(v: &[u8]) -> u16 {
     let mut chksum: u32 = 0;
     for i in (0..v.len()).step_by(2) {
         if i == 10 {
@@ -18,7 +18,7 @@ fn ipv4_checksum(v: &Vec<u8>) -> u16 {
     let out = !(chksum as u16);
     out
 }
-fn ipv4_checksum_verify(v: &Vec<u8>) -> u16 {
+pub fn ipv4_checksum_verify(v: &[u8]) -> u16 {
     let mut chksum: u32 = 0;
     for i in (0..v.len()).step_by(2) {
         let msb: u16 = (v[i] as u16) << 8;
@@ -34,11 +34,11 @@ fn ipv4_checksum_verify(v: &Vec<u8>) -> u16 {
 pub const IP_PROTOCOL_TCP: u8 = 6;
 pub const IP_PROTOCOL_UDP: u8 = 17;
 
-pub const ETHERNET_HDR_LEN: u16 = 14;
-pub const VLAN_HDR_LEN: u16 = 4;
-pub const IPV4_HDR_LEN: u16 = 20;
-pub const UDP_HDR_LEN: u16 = 8;
-pub const TCP_HDR_LEN: u16 = 20;
+pub const ETHERNET_HDR_LEN: usize = 14;
+pub const VLAN_HDR_LEN: usize = 4;
+pub const IPV4_HDR_LEN: usize = 20;
+pub const UDP_HDR_LEN: usize = 8;
+pub const TCP_HDR_LEN: usize = 20;
 
 pub const ETHERTYPE_IPV4: u16 = 0x0800;
 pub const ETHERTYPE_ARP: u16 = 0x0806;
@@ -103,7 +103,8 @@ pub struct Packet {
     buffer: HashMap<String, Hdr>,
     layers: Vec<String>,
     data: Vec<u8>,
-    payload_len: usize,
+    hdrlen: usize,
+    pktlen: usize,
 }
 
 impl Index<&str> for Packet {
@@ -126,63 +127,54 @@ impl Packet {
             buffer: HashMap::new(),
             layers: Vec::new(),
             data: Vec::new(),
-            payload_len: 0,
+            hdrlen: 0,
+            pktlen: 100,
         }
     }
-    fn from(buffer: HashMap<String, Hdr>, layers: Vec<String>, payload_len: usize) -> Packet {
+    fn from(buffer: HashMap<String, Hdr>, layers: Vec<String>, pktlen: usize) -> Packet {
         let mut data: Vec<u8> = Vec::new();
         for s in &layers {
             data.extend_from_slice(&buffer[s].as_slice());
         }
-        if payload_len > 0 {
-            let mut payload: Vec<u8> = (0..payload_len as u8).map(|x| x).collect();
+        if pktlen > 0 {
+            let mut payload: Vec<u8> = (0..pktlen as u8).map(|x| x).collect();
             data.append(&mut payload);
         }
         Packet {
             buffer,
             layers,
             data,
-            payload_len,
+            hdrlen: 100,
+            pktlen,
         }
     }
     pub fn push(&mut self, layer: impl Header) {
-        self.buffer
-            .insert(String::from(layer.name()), layer.clone());
         self.layers.push(String::from(layer.name()));
-        self.data.extend_from_slice(&layer.as_slice());
+        self.hdrlen += layer.len();
+        self.buffer
+            .insert(String::from(layer.name()), layer.to_owned());
     }
     pub fn pop(&mut self) {
         let name = self.layers.pop();
         self.buffer.remove(name.unwrap().as_str());
-        self.refresh();
     }
-    pub fn refresh(&mut self) {
-        self.data.clear();
-        for s in &self.layers {
-            self.data.extend_from_slice(&self.buffer[s].as_slice());
-        }
-        if self.payload_len > 0 {
-            let mut payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
-            self.data.append(&mut payload);
-        }
-    }
-    #[inline]
-    pub fn payload(&mut self, len: usize) {
-        let mut payload: Vec<u8> = (0..len as u8).map(|x| x).collect();
-        self.data.append(&mut payload);
-        self.payload_len = len;
+    pub fn set_pktlen(&mut self, len: usize) {
+        self.pktlen = len;
     }
     pub fn compare(&self, pkt: &Packet) -> bool {
-        self.compare_with_slice(pkt.as_slice())
+        let a = pkt.to_vec();
+        self.compare_with_slice(a.as_slice())
     }
     #[inline]
     pub fn compare_with_slice(&self, b: &[u8]) -> bool {
-        if self.data.len() != b.len() {
+        if self.pktlen != b.len() {
+            println!("this {} other {}", self.pktlen, b.len());
             return false;
         }
-        let a = self.data.as_slice();
+        let a = self.to_vec();
         let matching = a.iter().zip(b).filter(|&(a, b)| a == b).count();
-        if self.data.len() != matching || b.len() != matching {
+        if self.pktlen != matching || b.len() != matching {
+            println!("this {} other {} count {}", self.pktlen, b.len(), matching);
             return false;
         }
         true
@@ -191,9 +183,10 @@ impl Packet {
         for s in &self.layers {
             self.buffer[s.as_str()].show();
         }
-        println!("\n#### raw ####");
+        let v = self.to_vec();
+        println!("\n#### raw {} bytes ####", v.len());
         let mut x = 0;
-        for i in self.data.as_slice() {
+        for i in v.as_slice() {
             print!("{:02x} ", i);
             x += 1;
             if x % 16 == 0 {
@@ -203,25 +196,27 @@ impl Packet {
         }
         println!();
     }
-    pub fn as_slice(&self) -> &[u8] {
-        self.data.as_slice()
-    }
     pub fn to_vec(&self) -> Vec<u8> {
-        self.data.clone()
+        let mut r = Vec::new();
+        for s in &self.layers {
+            r.extend_from_slice(&self.buffer[s].as_slice());
+        }
+        let mut payload: Vec<u8> = (0..(self.pktlen - self.hdrlen) as u16)
+            .map(|x| x as u8)
+            .collect();
+        r.append(&mut payload);
+        r
     }
     pub fn clone(&self) -> Packet {
         let mut pkt = Packet::new();
         for s in &self.layers {
+            let h = self.buffer.get(s).unwrap();
             pkt.layers.push(String::from(s));
+            pkt.buffer.insert(String::from(s), h.as_ref().clone());
+            pkt.hdrlen += h.len();
+            print!("{} ", h.len());
         }
-        for s in &self.layers {
-            pkt.buffer.insert(String::from(s), self.buffer[s].clone());
-        }
-        for s in &self.layers {
-            pkt.data.extend_from_slice(&pkt.buffer[s].as_slice());
-        }
-        let mut payload: Vec<u8> = (0..self.payload_len as u8).map(|x| x).collect();
-        pkt.data.append(&mut payload);
+        pkt.pktlen = self.pktlen;
         pkt
     }
 }
@@ -265,7 +260,7 @@ impl Packet {
         v.extend_from_slice(&ip_chksum.to_be_bytes());
         v.extend_from_slice(&src.to_ipv4_bytes());
         v.extend_from_slice(&dst.to_ipv4_bytes());
-        ip_chksum = ipv4_checksum(&v);
+        ip_chksum = ipv4_checksum(v.as_slice());
         let mut ip = IPv4(v);
         ip.set_header_checksum(ip_chksum as u64);
         ip

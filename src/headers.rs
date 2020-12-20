@@ -9,9 +9,11 @@ pub use std::any::Any;
 
 pub trait Header {
     fn name(&self) -> &str;
+    fn len(&self) -> usize;
     fn show(&self);
     fn as_slice(&self) -> &[u8];
     fn clone(&self) -> Box<dyn Header>;
+    fn to_owned(self) -> Box<dyn Header + 'static>;
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
@@ -85,6 +87,9 @@ macro_rules! make_header {
                     }
                 }
                 pub fn size() -> usize {
+                    $size
+                }
+                pub fn len(&self) -> usize {
                     $size
                 }
                 pub fn name(&self) -> &str {
@@ -163,8 +168,14 @@ macro_rules! make_header {
                 fn clone(&self) -> Box<dyn Header + 'static> {
                     Box::new(self.clone())
                 }
+                fn to_owned(self) -> Box<dyn Header + 'static> {
+                    Box::from(self)
+                }
                 fn name(&self) -> &str {
                     self.name()
+                }
+                fn len(&self) -> usize {
+                    self.len()
                 }
                 fn as_any(&self) -> &dyn Any {
                     self

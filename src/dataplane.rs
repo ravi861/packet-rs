@@ -31,7 +31,7 @@ fn create_conn(intf: &str) -> (Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver
 }
 
 fn send_packet(tx: &mut Box<dyn DataLinkSender + 'static>, pkt: &Packet) {
-    tx.send_to(pkt.as_slice(), None);
+    tx.send_to(pkt.to_vec().as_slice(), None);
 }
 
 fn verify_packet(rx: &mut Box<dyn DataLinkReceiver + 'static>, pkt: &Packet) {
@@ -157,7 +157,7 @@ fn packet_gen_test() {
         tx.send(pkt.to_vec()).unwrap();
         mrx.recv().unwrap();
     }
-    println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
+    println!("Same {} packets         : {:?}", cnt, start.elapsed());
 
     // new packet in every iteration
     let start = Instant::now();
@@ -191,7 +191,7 @@ fn packet_gen_test() {
         tx.send(pkt.to_vec()).unwrap();
         mrx.recv().unwrap();
     }
-    println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
+    println!("New {} packets          : {:?}", cnt, start.elapsed());
 
     // clone packet in each iteration
     let start = Instant::now();
@@ -199,17 +199,17 @@ fn packet_gen_test() {
         tx.send(pkt.clone().to_vec()).unwrap();
         mrx.recv().unwrap();
     }
-    println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
+    println!("Clone {} packets        : {:?}", cnt, start.elapsed());
 
     // update packet and then clone in each iteration
     let start = Instant::now();
     for i in 0..cnt {
         let x: &mut crate::headers::Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
         x.set_etype(i % 0xFFFF);
-        pkt.refresh();
+        // pkt.refresh();
         tx.send(pkt.clone().to_vec()).unwrap();
         mrx.recv().unwrap();
     }
-    println!("Time elapsed for {} packets is: {:?}", cnt, start.elapsed());
+    println!("Update+Clone {} packets : {:?}", cnt, start.elapsed());
     //handle.join().unwrap();
 }

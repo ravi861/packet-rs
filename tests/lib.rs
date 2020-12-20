@@ -2,14 +2,16 @@
 extern crate rscapy;
 
 use rscapy::headers::*;
-use rscapy::packet::*;
+
+use std::time::Instant;
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rscapy::packet::*;
 
     #[test]
-    fn set_header_octets_test() {
+    fn set_get_octets_test() {
         let mut dips = Vec::new();
         dips.push(String::from("FFFF::FFFF").to_ipv6_bytes());
         dips.push(String::from("7FFF::FFFF").to_ipv6_bytes());
@@ -118,10 +120,68 @@ mod tests {
         ipv4.as_slice();
         ipv4.show();
 
+        let ipv4 = Packet::ipv4(5, 10, 4, 64, 0xdd, 6, "10.10.10.1", "11.11.11.1", 86);
+        ipv4.show();
+        assert_eq!(ipv4_checksum_verify(ipv4.as_slice()), 0);
+
         let data: Vec<u8> = vec![0; IPv6::<Vec<u8>>::size()];
         let ipv6 = IPv6(data);
         ipv6.as_slice();
         ipv6.show();
+    }
+    #[test]
+    fn ip_checksum_test() {
+        let ips = vec![
+            "10.10.10.1",
+            "11.11.11.1",
+            "12.12.12.1",
+            "13.13.13.1",
+            "14.14.14.1",
+            "15.15.15.1",
+            "16.16.16.1",
+            "17.17.17.1",
+            "18.18.18.1",
+            "19.19.19.1",
+        ];
+        for sip in &ips {
+            for dip in &ips {
+                for ttl in 1..255 {
+                    let pkt = rscapy::create_tcp_packet(
+                        "00:01:02:03:04:05",
+                        "00:06:07:08:09:0a",
+                        false,
+                        10,
+                        3,
+                        5,
+                        sip,
+                        dip,
+                        0,
+                        ttl,
+                        115,
+                        0,
+                        Vec::new(),
+                        80,
+                        9090,
+                        100,
+                        101,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        false,
+                        100,
+                    );
+                    let ip: &IPv4<Vec<u8>> = (&pkt["IPv4"]).into();
+                    assert_eq!(ipv4_checksum_verify(ip.as_slice()), 0);
+
+                    let ipv4 = Packet::ipv4(5, 0, 115, ttl, 0, 6, sip, dip, 86);
+                    assert_eq!(ipv4_checksum_verify(ipv4.as_slice()), 0);
+
+                    assert_eq!(ip.header_checksum(), ipv4.header_checksum());
+                }
+            }
+        }
     }
     #[test]
     fn create_packet_test() {
@@ -248,13 +308,12 @@ mod tests {
         let x: &mut Ethernet<Vec<u8>> = x.into();
         x.set_etype(0x86dd);
         x.show();
-        pkt.refresh();
 
         let new_pkt = pkt.clone();
         new_pkt.show();
         pkt.show();
         assert_eq!(true, pkt.compare(&new_pkt));
-        assert_eq!(true, pkt.compare_with_slice(new_pkt.as_slice()));
+        assert_eq!(true, pkt.compare_with_slice(new_pkt.to_vec().as_slice()));
 
         // immutable
         let y: &Box<dyn Header> = &pkt["Ethernet"];
@@ -275,5 +334,90 @@ mod tests {
         let x: &mut Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
         x.set_etype(0x1111);
         x.show();
+    }
+    #[test]
+    fn pktgen_perf_test() {
+        let cnt = 300000;
+        let pktlen: usize = 100;
+        let mut pkt = rscapy::create_tcp_packet(
+            "00:11:11:11:11:11",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "10.10.10.1",
+            "11.11.11.1",
+            0,
+            64,
+            115,
+            0,
+            Vec::new(),
+            8888,
+            9090,
+            100,
+            101,
+            5,
+            0,
+            2,
+            0,
+            0,
+            false,
+            pktlen,
+        );
+
+        // new packet in every iteration
+        let start = Instant::now();
+        for _ in 0..cnt {
+            let p = rscapy::create_tcp_packet(
+                "00:11:11:11:11:11",
+                "00:06:07:08:09:0a",
+                false,
+                10,
+                3,
+                5,
+                "10.10.10.1",
+                "11.11.11.1",
+                0,
+                64,
+                115,
+                0,
+                Vec::new(),
+                8888,
+                9090,
+                100,
+                101,
+                5,
+                0,
+                2,
+                0,
+                0,
+                false,
+                pktlen,
+            );
+            p.to_vec();
+            // p.show();
+        }
+        println!("New {} packets          : {:?}", cnt, start.elapsed());
+
+        // clone packet in each iteration
+        let start = Instant::now();
+        for _ in 0..cnt {
+            let p = pkt.clone();
+            p.to_vec();
+            // p.show();
+        }
+        println!("Clone {} packets        : {:?}", cnt, start.elapsed());
+
+        // update packet and then clone in each iteration
+        let start = Instant::now();
+        for i in 0..cnt {
+            let x: &mut rscapy::headers::Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
+            x.set_etype(i % 0xFFFF);
+            let p = pkt.clone();
+            p.to_vec();
+            // p.show();
+        }
+        println!("Update+Clone {} packets : {:?}", cnt, start.elapsed());
     }
 }

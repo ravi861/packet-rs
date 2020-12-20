@@ -27,7 +27,7 @@ fn ipv4_packet(
     pktlen: u16,
 ) -> Packet {
     let mut pkt = Packet::new();
-    let mut ip_len = pktlen - ETHERNET_HDR_LEN;
+    let mut ip_len = pktlen - ETHERNET_HDR_LEN as u16;
 
     let mut etype: u16 = ETHERTYPE_IPV4;
     if vlan_enable {
@@ -38,7 +38,7 @@ fn ipv4_packet(
 
     if vlan_enable {
         pkt.push(Packet::vlan(vlan_pcp, 0, vlan_vid, ETHERTYPE_IPV6));
-        ip_len -= VLAN_HDR_LEN;
+        ip_len -= VLAN_HDR_LEN as u16;
     }
 
     let ipv4 = Packet::ipv4(
@@ -63,7 +63,7 @@ fn ipv6_packet(
     pktlen: u16,
 ) -> Packet {
     let mut pkt = Packet::new();
-    let mut ip_len = pktlen - ETHERNET_HDR_LEN;
+    let mut ip_len = pktlen - ETHERNET_HDR_LEN as u16;
 
     let mut etype: u16 = ETHERTYPE_IPV6;
     if vlan_enable {
@@ -74,7 +74,7 @@ fn ipv6_packet(
 
     if vlan_enable {
         pkt.push(Packet::vlan(vlan_pcp, 0, vlan_vid, ETHERTYPE_IPV6));
-        ip_len -= VLAN_HDR_LEN;
+        ip_len -= VLAN_HDR_LEN as u16;
     }
 
     let ipv6 = Packet::ipv6(
@@ -114,7 +114,7 @@ pub fn create_tcp_packet(
     tcp_window: u16,
     tcp_urgent_ptr: u16,
     _tcp_checksum: bool,
-    pktlen: u16,
+    pktlen: usize,
 ) -> Packet {
     let mut pkt = ipv4_packet(
         eth_dst,
@@ -123,20 +123,16 @@ pub fn create_tcp_packet(
         vlan_vid,
         vlan_pcp,
         ip_ihl,
-        ip_dst,
         ip_src,
+        ip_dst,
         IP_PROTOCOL_TCP,
         ip_tos,
         ip_ttl,
         ip_id,
         ip_frag,
         ip_options,
-        pktlen,
+        pktlen as u16,
     );
-    let mut l4_len = pktlen - IPV4_HDR_LEN - ETHERNET_HDR_LEN;
-    if vlan_enable {
-        l4_len -= VLAN_HDR_LEN;
-    }
 
     let tcp = Packet::tcp(
         tcp_src,
@@ -151,8 +147,7 @@ pub fn create_tcp_packet(
         tcp_urgent_ptr,
     );
     pkt.push(tcp);
-
-    pkt.payload((l4_len - TCP_HDR_LEN) as usize);
+    pkt.set_pktlen(pktlen);
     pkt
 }
 
@@ -173,7 +168,7 @@ pub fn create_udp_packet(
     udp_dst: u16,
     udp_src: u16,
     _udp_checksum: bool,
-    pktlen: u16,
+    pktlen: usize,
 ) -> Packet {
     let mut pkt = ipv4_packet(
         eth_dst,
@@ -182,24 +177,23 @@ pub fn create_udp_packet(
         vlan_vid,
         vlan_pcp,
         ip_ihl,
-        ip_dst,
         ip_src,
+        ip_dst,
         IP_PROTOCOL_UDP,
         ip_tos,
         ip_ttl,
         ip_id,
         ip_frag,
         ip_options,
-        pktlen,
+        pktlen as u16,
     );
     let mut l4_len = pktlen - IPV4_HDR_LEN - ETHERNET_HDR_LEN;
     if vlan_enable {
         l4_len -= VLAN_HDR_LEN;
     }
-    let udp = Packet::udp(udp_src, udp_dst, l4_len);
+    let udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     pkt.push(udp);
-
-    pkt.payload((l4_len - UDP_HDR_LEN) as usize);
+    pkt.set_pktlen(pktlen);
     pkt
 }
 
@@ -223,7 +217,7 @@ pub fn create_tcpv6_packet(
     tcp_flags: u8,
     tcp_window: u16,
     tcp_urgent_ptr: u16,
-    pktlen: u16,
+    pktlen: usize,
 ) -> Packet {
     let mut pkt = ipv6_packet(
         eth_dst,
@@ -235,14 +229,10 @@ pub fn create_tcpv6_packet(
         ip_flow_label,
         IP_PROTOCOL_TCP,
         ip_hop_limit,
-        ip_dst,
         ip_src,
-        pktlen,
+        ip_dst,
+        pktlen as u16,
     );
-    let mut l4_len = pktlen - IPV4_HDR_LEN - ETHERNET_HDR_LEN;
-    if vlan_enable {
-        l4_len -= VLAN_HDR_LEN;
-    }
 
     let tcp = Packet::tcp(
         tcp_src,
@@ -257,8 +247,6 @@ pub fn create_tcpv6_packet(
         tcp_urgent_ptr,
     );
     pkt.push(tcp);
-
-    pkt.payload((l4_len - TCP_HDR_LEN) as usize);
     pkt
 }
 
@@ -275,7 +263,7 @@ pub fn create_udpv6_packet(
     ip_dst: &str,
     udp_dst: u16,
     udp_src: u16,
-    pktlen: u16,
+    pktlen: usize,
 ) -> Packet {
     let mut pkt = ipv6_packet(
         eth_dst,
@@ -287,17 +275,15 @@ pub fn create_udpv6_packet(
         ip_flow_label,
         IP_PROTOCOL_UDP,
         ip_hop_limit,
-        ip_dst,
         ip_src,
-        pktlen,
+        ip_dst,
+        pktlen as u16,
     );
     let mut l4_len = pktlen - IPV4_HDR_LEN - ETHERNET_HDR_LEN;
     if vlan_enable {
         l4_len -= VLAN_HDR_LEN;
     }
-    let udp = Packet::udp(udp_src, udp_dst, l4_len);
+    let udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     pkt.push(udp);
-
-    pkt.payload((l4_len - UDP_HDR_LEN) as usize);
     pkt
 }
