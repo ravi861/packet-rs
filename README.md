@@ -73,7 +73,7 @@ Create a Packet
 ---------------
 A packet is an ordered list of headers. Push headers as required into a packet.
 ```rust
-let mut pkt = Packet::new();
+let mut pkt = Packet::new(100);
 pkt.push(Ethernet::new()));
 pkt.push(IPv4::new());
 pkt.show()

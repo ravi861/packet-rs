@@ -26,7 +26,7 @@ fn ipv4_packet(
     _ip_options: Vec<u8>,
     pktlen: u16,
 ) -> Packet {
-    let mut pkt = Packet::new();
+    let mut pkt = Packet::new(pktlen as usize);
     let mut ip_len = pktlen - ETHERNET_HDR_LEN as u16;
 
     let mut etype: u16 = ETHERTYPE_IPV4;
@@ -62,7 +62,7 @@ fn ipv6_packet(
     ip_dst: &str,
     pktlen: u16,
 ) -> Packet {
-    let mut pkt = Packet::new();
+    let mut pkt = Packet::new(pktlen as usize);
     let mut ip_len = pktlen - ETHERNET_HDR_LEN as u16;
 
     let mut etype: u16 = ETHERTYPE_IPV6;
@@ -147,7 +147,6 @@ pub fn create_tcp_packet(
         tcp_urgent_ptr,
     );
     pkt.push(tcp);
-    pkt.set_pktlen(pktlen);
     pkt
 }
 
@@ -193,7 +192,6 @@ pub fn create_udp_packet(
     }
     let udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     pkt.push(udp);
-    pkt.set_pktlen(pktlen);
     pkt
 }
 

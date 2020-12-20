@@ -122,13 +122,13 @@ impl IndexMut<&str> for Packet {
 }
 
 impl Packet {
-    pub fn new() -> Packet {
+    pub fn new(pktlen: usize) -> Packet {
         Packet {
             buffer: HashMap::new(),
             layers: Vec::new(),
             data: Vec::new(),
             hdrlen: 0,
-            pktlen: 100,
+            pktlen,
         }
     }
     fn from(buffer: HashMap<String, Hdr>, layers: Vec<String>, pktlen: usize) -> Packet {
@@ -157,9 +157,6 @@ impl Packet {
     pub fn pop(&mut self) {
         let name = self.layers.pop();
         self.buffer.remove(name.unwrap().as_str());
-    }
-    pub fn set_pktlen(&mut self, len: usize) {
-        self.pktlen = len;
     }
     pub fn compare(&self, pkt: &Packet) -> bool {
         let a = pkt.to_vec();
@@ -208,7 +205,7 @@ impl Packet {
         r
     }
     pub fn clone(&self) -> Packet {
-        let mut pkt = Packet::new();
+        let mut pkt = Packet::new(self.pktlen);
         for s in &self.layers {
             let h = self.buffer.get(s).unwrap();
             pkt.layers.push(String::from(s));
@@ -216,7 +213,6 @@ impl Packet {
             pkt.hdrlen += h.len();
             print!("{} ", h.len());
         }
-        pkt.pktlen = self.pktlen;
         pkt
     }
 }
