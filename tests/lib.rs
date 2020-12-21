@@ -137,9 +137,13 @@ mod tests {
     fn vxlan_header_test() {
         let vxlan = Vxlan::new();
         vxlan.show();
-
         assert_eq!(vxlan.flags(), 0x8);
         assert_eq!(vxlan.vni(), 2000);
+
+        let vxlan1 = Packet::vxlan(2000);
+        vxlan1.show();
+        assert_eq!(vxlan1.flags(), 0x8);
+        assert_eq!(vxlan1.vni(), 2000);
     }
     #[test]
     fn ip_checksum_test() {

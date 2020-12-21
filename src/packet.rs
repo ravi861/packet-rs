@@ -1,5 +1,5 @@
 use std::ops::{Index, IndexMut};
-use std::{collections::HashMap, net::Ipv6Addr, str::FromStr};
+use std::{net::Ipv6Addr, str::FromStr};
 
 use crate::headers::*;
 
@@ -71,6 +71,7 @@ impl ConvertToBytes for str {
         }
         mac
     }
+
     fn to_ipv4_bytes(&self) -> [u8; IPV4_LEN] {
         let mut ipv4: [u8; IPV4_LEN] = [0, 0, 0, 0];
         for (i, v) in self.split(".").enumerate() {
@@ -97,66 +98,59 @@ impl ConvertToBytes for str {
     }
 }
 
-type Hdr = Box<dyn Header>;
-
 pub struct Packet {
-    buffer: HashMap<String, Hdr>,
-    layers: Vec<String>,
-    data: Vec<u8>,
+    hdrs: Vec<Box<dyn Header>>,
     hdrlen: usize,
     pktlen: usize,
 }
 
 impl Index<&str> for Packet {
-    type Output = Hdr;
+    type Output = Box<dyn Header>;
 
-    fn index<'a>(&'a self, index: &str) -> &'a Hdr {
-        &self.buffer.get(index).unwrap()
+    fn index<'a>(&'a self, index: &str) -> &'a Self::Output {
+        let mut i = 0;
+        for s in &self.hdrs {
+            if s.name() == index {
+                break;
+            }
+            i += 1;
+        }
+        self.hdrs.get(i).unwrap()
+        // &self.buffer.get(index).unwrap()
     }
 }
 
 impl IndexMut<&str> for Packet {
-    fn index_mut<'a>(&'a mut self, index: &str) -> &'a mut Hdr {
-        self.buffer.get_mut(index).unwrap()
+    fn index_mut<'a>(&'a mut self, index: &str) -> &'a mut Self::Output {
+        let mut i = 0;
+        for s in &self.hdrs {
+            if s.name() == index {
+                break;
+            }
+            i += 1;
+        }
+        self.hdrs.get_mut(i).unwrap()
+        // self.buffer.get_mut(index).unwrap()
     }
 }
 
 impl Packet {
     pub fn new(pktlen: usize) -> Packet {
         Packet {
-            buffer: HashMap::new(),
-            layers: Vec::new(),
-            data: Vec::new(),
+            hdrs: Vec::new(),
             hdrlen: 0,
             pktlen,
         }
     }
-    fn from(buffer: HashMap<String, Hdr>, layers: Vec<String>, pktlen: usize) -> Packet {
-        let mut data: Vec<u8> = Vec::new();
-        for s in &layers {
-            data.extend_from_slice(&buffer[s].as_slice());
-        }
-        if pktlen > 0 {
-            let mut payload: Vec<u8> = (0..pktlen as u8).map(|x| x).collect();
-            data.append(&mut payload);
-        }
-        Packet {
-            buffer,
-            layers,
-            data,
-            hdrlen: 100,
-            pktlen,
-        }
-    }
-    pub fn push(&mut self, layer: impl Header) {
-        self.layers.push(String::from(layer.name()));
-        self.hdrlen += layer.len();
-        self.buffer
-            .insert(String::from(layer.name()), layer.to_owned());
+    pub fn push(&mut self, hdr: impl Header) {
+        self.hdrlen += hdr.len();
+        self.hdrs.push(hdr.to_owned());
     }
     pub fn pop(&mut self) {
-        let name = self.layers.pop();
-        self.buffer.remove(name.unwrap().as_str());
+        if self.hdrs.len() != 0 {
+            let last = self.hdrs.pop().unwrap();
+            self.hdrlen -= last.len();
+        }
     }
     pub fn compare(&self, pkt: &Packet) -> bool {
         let a = pkt.to_vec();
@@ -177,8 +171,8 @@ impl Packet {
         true
     }
     pub fn show(&self) {
-        for s in &self.layers {
-            self.buffer[s.as_str()].show();
+        for s in &self.hdrs {
+            s.show();
         }
         let v = self.to_vec();
         println!("\n#### raw {} bytes ####", v.len());
@@ -195,8 +189,8 @@ impl Packet {
     }
     pub fn to_vec(&self) -> Vec<u8> {
         let mut r = Vec::new();
-        for s in &self.layers {
-            r.extend_from_slice(&self.buffer[s].as_slice());
+        for s in &self.hdrs {
+            r.extend_from_slice(&s.as_slice());
         }
         let mut payload: Vec<u8> = (0..(self.pktlen - self.hdrlen) as u16)
             .map(|x| x as u8)
@@ -206,12 +200,9 @@ impl Packet {
     }
     pub fn clone(&self) -> Packet {
         let mut pkt = Packet::new(self.pktlen);
-        for s in &self.layers {
-            let h = self.buffer.get(s).unwrap();
-            pkt.layers.push(String::from(s));
-            pkt.buffer.insert(String::from(s), h.as_ref().clone());
-            pkt.hdrlen += h.len();
-            print!("{} ", h.len());
+        for s in &self.hdrs {
+            pkt.hdrs.push(s.as_ref().clone());
+            pkt.hdrlen += s.len();
         }
         pkt
     }
@@ -314,6 +305,13 @@ impl Packet {
         v.extend_from_slice(&chksum.to_be_bytes());
         v.extend_from_slice(&urgent_ptr.to_be_bytes());
         TCP(v)
+    }
+    pub fn vxlan(vni: u32) -> Vxlan<Vec<u8>> {
+        let mut v: Vec<u8> = Vec::new();
+        let flags: u32 = 0x8;
+        v.extend_from_slice(&(flags << 24 as u32).to_be_bytes());
+        v.extend_from_slice(&(vni << 8 as u32).to_be_bytes());
+        Vxlan(v)
     }
 }
 

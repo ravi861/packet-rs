@@ -206,7 +206,6 @@ fn packet_gen_test() {
     for i in 0..cnt {
         let x: &mut crate::headers::Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
         x.set_etype(i % 0xFFFF);
-        // pkt.refresh();
         tx.send(pkt.clone().to_vec()).unwrap();
         mrx.recv().unwrap();
     }
