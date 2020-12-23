@@ -7,13 +7,13 @@ pub use paste::paste;
 #[doc(hidden)]
 pub use std::any::Any;
 
-pub trait Header {
+pub trait Header: Send {
     fn name(&self) -> &str;
     fn len(&self) -> usize;
     fn show(&self);
     fn as_slice(&self) -> &[u8];
     fn clone(&self) -> Box<dyn Header>;
-    fn to_owned(self) -> Box<dyn Header + 'static>;
+    fn to_owned(self) -> Box<dyn Header>;
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
@@ -55,6 +55,7 @@ macro_rules! make_header {
     ) => {
         paste! {
             bitfield! {
+                #[derive(Copy, Clone)]
                 pub struct $name(MSB0 [u8]);
                 u64;
                 $(
@@ -165,10 +166,10 @@ macro_rules! make_header {
                 fn as_slice(&self) -> &[u8] {
                     self.as_slice()
                 }
-                fn clone(&self) -> Box<dyn Header + 'static> {
+                fn clone(&self) -> Box<dyn Header> {
                     Box::new(self.clone())
                 }
-                fn to_owned(self) -> Box<dyn Header + 'static> {
+                fn to_owned(self) -> Box<dyn Header> {
                     Box::from(self)
                 }
                 fn name(&self) -> &str {
