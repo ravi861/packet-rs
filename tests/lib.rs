@@ -9,6 +9,7 @@ use std::time::Instant;
 mod tests {
     use super::*;
     use rscapy::packet::*;
+    use rscapy::Packet;
 
     #[test]
     fn set_get_octets_test() {

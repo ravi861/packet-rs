@@ -7,6 +7,8 @@ pub use paste::paste;
 #[doc(hidden)]
 pub use std::any::Any;
 
+use crate::Packet;
+
 pub trait Header: Send {
     fn name(&self) -> &str;
     fn len(&self) -> usize;

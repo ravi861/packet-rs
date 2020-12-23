@@ -1,7 +1,11 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    borrow::Borrow,
+    ops::{Index, IndexMut},
+};
 use std::{net::Ipv6Addr, str::FromStr};
 
 use crate::headers::*;
+use crate::Packet;
 
 fn ipv4_checksum(v: &[u8]) -> u16 {
     let mut chksum: u32 = 0;
@@ -96,12 +100,6 @@ impl ConvertToBytes for str {
             }
         }
     }
-}
-
-pub struct Packet {
-    hdrs: Vec<Box<dyn Header>>,
-    hdrlen: usize,
-    pktlen: usize,
 }
 
 impl Index<&str> for Packet {

@@ -1,7 +1,7 @@
 extern crate crossbeam_queue;
 extern crate pnet;
 
-use crate::packet::Packet;
+use crate::Packet;
 use pnet::datalink::Channel::Ethernet;
 use pnet::datalink::{self, NetworkInterface};
 use pnet::datalink::{DataLinkReceiver, DataLinkSender};

@@ -7,7 +7,14 @@ pub mod dataplane;
 pub mod headers;
 pub mod packet;
 
+use self::headers::*;
 use self::packet::*;
+
+pub struct Packet {
+    hdrs: Vec<Box<dyn Header>>,
+    hdrlen: usize,
+    pktlen: usize,
+}
 
 fn ipv4_packet(
     eth_dst: &str,
