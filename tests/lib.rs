@@ -163,7 +163,7 @@ mod tests {
         for sip in &ips {
             for dip in &ips {
                 for ttl in 1..255 {
-                    let pkt = rscapy::create_tcp_packet(
+                    let pkt = Packet::create_tcp_packet(
                         "00:01:02:03:04:05",
                         "00:06:07:08:09:0a",
                         false,
@@ -202,7 +202,7 @@ mod tests {
     }
     #[test]
     fn create_packet_test() {
-        let _pkt = rscapy::create_tcp_packet(
+        let _pkt = Packet::create_tcp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -230,7 +230,7 @@ mod tests {
         );
         // pkt.show();
 
-        let _pkt = rscapy::create_udp_packet(
+        let _pkt = Packet::create_udp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -251,7 +251,7 @@ mod tests {
         );
         // pkt.show();
 
-        let _pkt = rscapy::create_tcpv6_packet(
+        let _pkt = Packet::create_tcpv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -275,7 +275,7 @@ mod tests {
         );
         // pkt.show();
 
-        let _pkt = rscapy::create_udpv6_packet(
+        let _pkt = Packet::create_udpv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -291,10 +291,32 @@ mod tests {
             129,
         );
         // pkt.show();
+
+        let _pkt = Packet::create_vxlan_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "192.168.0.199",
+            "192.168.0.1",
+            0,
+            64,
+            0,
+            0x4000,
+            Vec::new(),
+            80,
+            9090,
+            false,
+            2000,
+            _pkt,
+        );
+        // _pkt.show();
     }
     #[test]
     fn update_packet_test() {
-        let mut pkt = rscapy::create_tcp_packet(
+        let mut pkt = Packet::create_tcp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -360,7 +382,7 @@ mod tests {
     fn pktgen_perf_test() {
         let cnt = 300000;
         let pktlen: usize = 100;
-        let mut pkt = rscapy::create_tcp_packet(
+        let mut pkt = Packet::create_tcp_packet(
             "00:11:11:11:11:11",
             "00:06:07:08:09:0a",
             false,
@@ -390,7 +412,7 @@ mod tests {
         // new packet in every iteration
         let start = Instant::now();
         for _ in 0..cnt {
-            let p = rscapy::create_tcp_packet(
+            let p = Packet::create_tcp_packet(
                 "00:11:11:11:11:11",
                 "00:06:07:08:09:0a",
                 false,

@@ -8,7 +8,7 @@ use pnet::datalink::{self, NetworkInterface};
 use pnet::datalink::{DataLinkReceiver, DataLinkSender};
 
 fn test_packet() -> Packet {
-    crate::create_tcp_packet(
+    Packet::create_tcp_packet(
         "00:11:11:11:11:11",
         "00:06:07:08:09:0a",
         false,
@@ -211,32 +211,7 @@ fn packet_gen_test() {
     // new packet in every iteration
     let start = Instant::now();
     for _ in 0..cnt {
-        let pkt = crate::create_tcp_packet(
-            "00:11:11:11:11:11",
-            "00:06:07:08:09:0a",
-            false,
-            10,
-            3,
-            5,
-            "10.10.10.1",
-            "11.11.11.1",
-            0,
-            64,
-            115,
-            0,
-            Vec::new(),
-            8888,
-            9090,
-            100,
-            101,
-            5,
-            0,
-            2,
-            0,
-            0,
-            false,
-            100,
-        );
+        let pkt = test_packet();
         tx.send(pkt.to_vec()).unwrap();
         mrx.recv().unwrap();
     }
