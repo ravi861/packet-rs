@@ -1,17 +1,11 @@
-extern crate crossbeam_queue;
-extern crate pnet;
+use std::sync::{mpsc, Arc, Condvar, Mutex};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use crate::Packet;
 use pnet::datalink::Channel::Ethernet;
 use pnet::datalink::{self, NetworkInterface};
 use pnet::datalink::{DataLinkReceiver, DataLinkSender};
-
-use std::sync::mpsc;
-use std::sync::{Arc, Condvar, Mutex};
-use std::thread;
-use std::time::{Duration, Instant};
-
-use crossbeam_queue::ArrayQueue;
 
 fn test_packet() -> Packet {
     crate::create_tcp_packet(
@@ -88,7 +82,7 @@ fn test_send_packet() {
     let (mut tx, _) = create_conn("feth0");
     let (_, mut rx) = create_conn("feth1");
 
-    let tq = Arc::new(ArrayQueue::new(100));
+    let tq = Arc::new(crossbeam_queue::ArrayQueue::new(100));
     let rq = tq.clone();
     let pair = Arc::new((Mutex::new(false), Condvar::new()));
     let pair2 = pair.clone();
@@ -140,7 +134,7 @@ fn test_send_packet() {
 // Simulate multi port Rx and pipe to a single a reciever queue
 fn packet_mc_test() {
     let (tx, rx): (mpsc::SyncSender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::sync_channel(0);
-    let tq = Arc::new(ArrayQueue::new(1000));
+    let tq = Arc::new(crossbeam_queue::ArrayQueue::new(1000));
     let rq = tq.clone();
     let pair = Arc::new((Mutex::new(false), Condvar::new()));
     let pair2 = pair.clone();

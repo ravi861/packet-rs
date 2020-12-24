@@ -1,7 +1,4 @@
-use std::{
-    borrow::Borrow,
-    ops::{Index, IndexMut},
-};
+use std::ops::{Index, IndexMut};
 use std::{net::Ipv6Addr, str::FromStr};
 
 use crate::headers::*;
@@ -203,6 +200,24 @@ impl Packet {
             pkt.hdrlen += s.len();
         }
         pkt
+    }
+}
+impl Packet {
+    pub fn get_header<'a, T: 'static>(&'a self, index: &'a str) -> &'a T {
+        let y: &Box<dyn Header> = &self[index];
+        let b = match y.as_any().downcast_ref::<T>() {
+            Some(b) => b,
+            None => panic!("Requested header is {}", index),
+        };
+        b
+    }
+    pub fn get_header_mut<'a, T: 'static>(&'a mut self, index: &'a str) -> &'a mut T {
+        let y: &mut Box<dyn Header> = &mut self[index];
+        let b = match y.as_any_mut().downcast_mut::<T>() {
+            Some(b) => b,
+            None => panic!("Requested mut eader is {}", index),
+        };
+        b
     }
 }
 

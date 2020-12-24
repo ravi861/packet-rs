@@ -333,6 +333,10 @@ mod tests {
         assert_eq!(true, pkt.compare_with_slice(new_pkt.to_vec().as_slice()));
 
         // immutable
+        let x: &Ethernet<Vec<u8>> = pkt.get_header("Ethernet");
+        println!("{}", x.etype());
+        x.show();
+
         let y: &Box<dyn Header> = &pkt["Ethernet"];
         let x: &Ethernet<Vec<u8>> = y.into();
         println!("{}", x.etype());
@@ -343,13 +347,13 @@ mod tests {
         x.show();
 
         // mutable
-        let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
-        let x: &mut Ethernet<Vec<u8>> = x.into();
+        let x: &mut Ethernet<Vec<u8>> = pkt.get_header_mut("Ethernet");
         x.set_etype(0x9999);
         x.show();
 
-        let x: &mut Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
-        x.set_etype(0x1111);
+        let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
+        let x: &mut Ethernet<Vec<u8>> = x.into();
+        x.set_etype(0x9999);
         x.show();
     }
     #[test]
