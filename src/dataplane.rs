@@ -1,15 +1,140 @@
+extern crate crossbeam_queue;
+extern crate pnet_datalink;
+
+use crossbeam_queue::ArrayQueue;
 use std::sync::{mpsc, Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::Packet;
-use pnet::datalink::Channel::Ethernet;
-use pnet::datalink::{self, NetworkInterface};
-use pnet::datalink::{DataLinkReceiver, DataLinkSender};
+use pnet_datalink::Channel::Ethernet;
+use pnet_datalink::NetworkInterface;
+use pnet_datalink::{DataLinkReceiver, DataLinkSender};
 
-fn test_packet() -> Packet {
+fn create_conn(intf: &str) -> (Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>) {
+    let interface_names_match = |iface: &NetworkInterface| iface.name == intf;
+    let interfaces = pnet_datalink::interfaces();
+    let interface = interfaces
+        .clone()
+        .into_iter()
+        .filter(interface_names_match)
+        .next()
+        .unwrap();
+    // Create a new channel, dealing with layer 2 packets
+    let (tx, rx) = match pnet_datalink::channel(&interface, Default::default()) {
+        Ok(Ethernet(tx, rx)) => (tx, rx),
+        Ok(_) => panic!("Unhandled channel type"),
+        Err(e) => panic!(
+            "An error occurred when creating the datalink channel: {}",
+            e
+        ),
+    };
+    (tx, rx)
+}
+
+struct InterfaceInfo {
+    interface: NetworkInterface,
+    tx: Box<dyn DataLinkSender>,
+}
+
+#[derive(Debug)]
+struct Payload {
+    pkt: Vec<u8>,
+    name: String,
+}
+pub struct DataPlane {
+    interfaces: Vec<InterfaceInfo>,
+    queue: Arc<ArrayQueue<Payload>>,
+}
+
+impl DataPlane {
+    pub fn new(intfs: Vec<&str>) -> DataPlane {
+        let mut interfaces: Vec<InterfaceInfo> = Vec::new();
+        for intf in intfs {
+            let interface_names_match = |iface: &NetworkInterface| iface.name == intf;
+            let interface = match pnet_datalink::interfaces()
+                .clone()
+                .into_iter()
+                .filter(interface_names_match)
+                .next()
+            {
+                Some(b) => b,
+                None => {
+                    println!("Invalid intf {}", intf);
+                    continue;
+                }
+            };
+            // Create a new channel, dealing with layer 2 packets
+            let d = pnet_datalink::Config::default();
+            let (tx, _) = match pnet_datalink::channel(&interface, d) {
+                Ok(Ethernet(tx, rx)) => (tx, rx),
+                Ok(_) => panic!("Unhandled channel type"),
+                Err(e) => panic!(
+                    "An error occurred when creating the datalink channel: {}",
+                    e
+                ),
+            };
+            interfaces.push(InterfaceInfo { interface, tx });
+            thread::sleep(Duration::from_millis(100));
+        }
+        let queue: Arc<ArrayQueue<Payload>> = Arc::new(ArrayQueue::new(1000));
+        DataPlane { interfaces, queue }
+    }
+    pub fn run(&self) {
+        for ii in &self.interfaces {
+            let d = pnet_datalink::Config::default();
+            let (_tx, mut rx) = match pnet_datalink::channel(&ii.interface, d) {
+                Ok(Ethernet(tx, rx)) => (tx, rx),
+                Ok(_) => panic!("Unhandled channel type"),
+                Err(e) => panic!(
+                    "An error occurred when creating the datalink channel: {}",
+                    e
+                ),
+            };
+            let tq = self.queue.clone();
+            let ifs = ii.interface.name.clone();
+            thread::spawn(move || {
+                loop {
+                    match rx.next() {
+                        Ok(packet) => {
+                            let payload = Payload {
+                                pkt: Vec::from(packet),
+                                name: ifs.clone(),
+                            };
+                            tq.push(payload).unwrap();
+                        }
+                        Err(e) => {
+                            // If an error occurs, we can handle it here
+                            panic!("An error occurred while reading: {}", e);
+                        }
+                    }
+                }
+            });
+        }
+    }
+    pub fn send(&mut self, intf: &str, pkt: &Packet) {
+        for interface in &mut self.interfaces {
+            if interface.interface.name == intf {
+                interface.tx.send_to(pkt.to_vec().as_slice(), None);
+            }
+        }
+    }
+    pub fn verify(&self, intf: &str, pkt: &Packet) {
+        while !self.queue.is_empty() {
+            let p = self.queue.pop().unwrap();
+            assert!(pkt.compare_with_slice(p.pkt.as_slice()));
+            // assert_eq!(intf, p.name);
+        }
+    }
+}
+
+fn send_packet(tx: &mut Box<dyn DataLinkSender + 'static>, pkt: &Packet) {
+    tx.send_to(pkt.to_vec().as_slice(), None);
+}
+
+fn sample_packet() -> Packet {
     Packet::create_tcp_packet(
-        "00:11:11:11:11:11",
+        "66:65:74:68:00:01",
         "00:06:07:08:09:0a",
         false,
         10,
@@ -35,49 +160,11 @@ fn test_packet() -> Packet {
         100,
     )
 }
-fn create_conn(intf: &str) -> (Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>) {
-    let interface_names_match = |iface: &NetworkInterface| iface.name == intf;
-    let interfaces = datalink::interfaces();
-    let interface = interfaces
-        .clone()
-        .into_iter()
-        .filter(interface_names_match)
-        .next()
-        .unwrap();
-    // Create a new channel, dealing with layer 2 packets
-    let (tx, rx) = match datalink::channel(&interface, Default::default()) {
-        Ok(Ethernet(tx, rx)) => (tx, rx),
-        Ok(_) => panic!("Unhandled channel type"),
-        Err(e) => panic!(
-            "An error occurred when creating the datalink channel: {}",
-            e
-        ),
-    };
-    (tx, rx)
-}
-
-fn send_packet(tx: &mut Box<dyn DataLinkSender + 'static>, pkt: &Packet) {
-    tx.send_to(pkt.to_vec().as_slice(), None);
-}
-
-fn verify_packet(rx: &mut Box<dyn DataLinkReceiver + 'static>, pkt: &Packet) {
-    println!("Rx");
-    match rx.next() {
-        Ok(packet) => {
-            println!("{:?}", packet);
-            assert!(pkt.compare_with_slice(packet));
-        }
-        Err(e) => {
-            // If an error occurs, we can handle it here
-            panic!("An error occurred while reading: {}", e);
-        }
-    }
-}
 
 #[test]
 #[ignore]
 fn test_send_packet() {
-    let pkt = test_packet();
+    let pkt = sample_packet();
 
     let (mut tx, _) = create_conn("feth0");
     let (_, mut rx) = create_conn("feth1");
@@ -136,8 +223,8 @@ fn packet_mc_test() {
     let (tx, rx): (mpsc::SyncSender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::sync_channel(0);
     let tq = Arc::new(crossbeam_queue::ArrayQueue::new(1000));
     let rq = tq.clone();
-    let pair = Arc::new((Mutex::new(false), Condvar::new()));
-    let pair2 = pair.clone();
+    // let pair = Arc::new((Mutex::new(false), Condvar::new()));
+    // let pair2 = pair.clone();
 
     // ping packets on different channels
     thread::spawn(move || loop {
@@ -154,7 +241,7 @@ fn packet_mc_test() {
     });
 
     let tcount = 10;
-    let pkt = test_packet();
+    let pkt = sample_packet();
     for _ in 0..tcount {
         let p3 = pkt.clone();
         let t3 = tx.clone();
@@ -198,7 +285,7 @@ fn packet_gen_test() {
         };
     });
 
-    let mut pkt = test_packet();
+    let mut pkt = sample_packet();
     // same packet in every iteration
     let start = Instant::now();
     let cnt = 100000;
@@ -211,7 +298,7 @@ fn packet_gen_test() {
     // new packet in every iteration
     let start = Instant::now();
     for _ in 0..cnt {
-        let pkt = test_packet();
+        let pkt = sample_packet();
         tx.send(pkt.to_vec()).unwrap();
         mrx.recv().unwrap();
     }
@@ -235,4 +322,19 @@ fn packet_gen_test() {
     }
     println!("Update+Clone {} packets : {:?}", cnt, start.elapsed());
     //handle.join().unwrap();
+}
+
+#[test]
+#[ignore]
+fn dp_test() {
+    let intfs = vec!["feth0", "feth1"];
+    let mut dp = DataPlane::new(intfs);
+    dp.run();
+
+    let cnt = 100;
+    for _ in 0..cnt {
+        let pkt = sample_packet();
+        &mut dp.send("feth1", &pkt);
+        dp.verify("feth0", &pkt)
+    }
 }
