@@ -55,7 +55,6 @@ macro_rules! make_header {
     ) => {
         paste! {
             bitfield! {
-                #[derive(Copy, Clone)]
                 pub struct $name(MSB0 [u8]);
                 u64;
                 $(

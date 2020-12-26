@@ -6,6 +6,7 @@ use std::sync::{mpsc, Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use crate::DataPlane;
 use crate::Packet;
 use pnet_datalink::Channel::Ethernet;
 use pnet_datalink::NetworkInterface;
@@ -42,13 +43,13 @@ struct Payload {
     pkt: Vec<u8>,
     name: String,
 }
-pub struct DataPlane {
+pub struct DataPlaneImpl {
     interfaces: Vec<InterfaceInfo>,
     queue: Arc<ArrayQueue<Payload>>,
 }
 
-impl DataPlane {
-    pub fn new(intfs: Vec<&str>) -> DataPlane {
+impl DataPlaneImpl {
+    pub fn new(intfs: Vec<&str>) -> DataPlaneImpl {
         let mut interfaces: Vec<InterfaceInfo> = Vec::new();
         for intf in intfs {
             let interface_names_match = |iface: &NetworkInterface| iface.name == intf;
@@ -78,7 +79,7 @@ impl DataPlane {
             thread::sleep(Duration::from_millis(100));
         }
         let queue: Arc<ArrayQueue<Payload>> = Arc::new(ArrayQueue::new(1000));
-        DataPlane { interfaces, queue }
+        DataPlaneImpl { interfaces, queue }
     }
     pub fn run(&self) {
         for ii in &self.interfaces {
@@ -102,6 +103,7 @@ impl DataPlane {
                                 name: ifs.clone(),
                             };
                             tq.push(payload).unwrap();
+                            // println!("{} {}", ifs, tq.len());
                         }
                         Err(e) => {
                             // If an error occurs, we can handle it here
@@ -119,13 +121,81 @@ impl DataPlane {
             }
         }
     }
-    pub fn verify(&self, intf: &str, pkt: &Packet) {
+    fn pull(&self) -> Vec<Payload> {
+        let mut pkts = Vec::new();
         while !self.queue.is_empty() {
-            let p = self.queue.pop().unwrap();
-            assert!(pkt.compare_with_slice(p.pkt.as_slice()));
-            // assert_eq!(intf, p.name);
+            pkts.push(self.queue.pop().unwrap());
+        }
+        pkts
+    }
+    #[inline]
+    fn poll(&self, timeout: u64) -> Result<Vec<Payload>, u64> {
+        // thread::sleep(Duration::from_millis(100));
+        let start = Instant::now();
+        loop {
+            let pkts = self.pull();
+            if pkts.len() != 0 {
+                return Ok(pkts);
+            }
+            thread::sleep(Duration::from_millis(1));
+            if (Instant::now() - start) > Duration::from_secs(timeout) {
+                break;
+            }
+        }
+        Err(0)
+    }
+    pub fn verify_packet(&self, intf: &str, pkt: &Packet) {
+        let pkts = match self.poll(1) {
+            Ok(pkts) => pkts,
+            Err(_) => Vec::new(),
+        };
+        if pkts.len() != 1 {
+            panic!("Received {} packets when expecting 1 packet", pkts.len());
+        }
+        if intf != pkts[0].name {
+            panic!("Expected packet on {}, received on {}", intf, pkts[0].name);
+        }
+        assert!(pkt.compare_with_slice(pkts[0].pkt.as_slice()));
+    }
+    pub fn verify_packet_on_each_port(&self, intf: Vec<&str>, pkt: &Packet) {
+        let pkts = match self.poll(1) {
+            Ok(pkts) => pkts,
+            Err(_) => Vec::new(),
+        };
+        if pkts.len() != intf.len() {
+            panic!(
+                "Received {} packets when expecting {} packet",
+                pkts.len(),
+                intf.len()
+            );
+        }
+        for payload in pkts {
+            if intf.iter().find(|&&x| x == payload.name) == None {
+                panic!("Did not receive expected packet on {}", payload.name);
+            }
+            assert!(pkt.compare_with_slice(payload.pkt.as_slice()));
         }
     }
+}
+
+impl DataPlane for DataPlaneImpl {
+    fn run(&self) {
+        self.run();
+    }
+    fn send(&mut self, intf: &str, pkt: &Packet) {
+        self.send(intf, pkt);
+    }
+    fn verify_packet(&self, intf: &str, pkt: &Packet) {
+        self.verify_packet(intf, pkt);
+    }
+    fn verify_packet_on_each_port(&self, intf: Vec<&str>, pkt: &Packet) {
+        self.verify_packet_on_each_port(intf, pkt);
+    }
+}
+
+#[inline]
+pub fn dataplane(interfaces: Vec<&str>) -> Box<dyn DataPlane> {
+    Box::from(DataPlaneImpl::new(interfaces))
 }
 
 fn send_packet(tx: &mut Box<dyn DataLinkSender + 'static>, pkt: &Packet) {
@@ -328,13 +398,14 @@ fn packet_gen_test() {
 #[ignore]
 fn dp_test() {
     let intfs = vec!["feth0", "feth1"];
-    let mut dp = DataPlane::new(intfs);
+    let mut dp = dataplane(intfs);
     dp.run();
 
     let cnt = 100;
     for _ in 0..cnt {
         let pkt = sample_packet();
         &mut dp.send("feth1", &pkt);
-        dp.verify("feth0", &pkt)
+        // dp.verify_packet("feth0", &pkt)
+        dp.verify_packet_on_each_port(vec!["feth1", "feth0"], &pkt);
     }
 }
