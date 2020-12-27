@@ -2,7 +2,7 @@ extern crate crossbeam_queue;
 extern crate pnet_datalink;
 
 use crossbeam_queue::ArrayQueue;
-use std::sync::{mpsc, Arc, Condvar, Mutex};
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -231,181 +231,186 @@ fn sample_packet() -> Packet {
     )
 }
 
-#[test]
-#[ignore]
-fn test_send_packet() {
-    let pkt = sample_packet();
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{mpsc, Arc, Condvar, Mutex};
+    #[test]
+    #[ignore]
+    fn test_send_packet() {
+        let pkt = sample_packet();
 
-    let (mut tx, _) = create_conn("feth0");
-    let (_, mut rx) = create_conn("feth1");
+        let (mut tx, _) = create_conn("feth0");
+        let (_, mut rx) = create_conn("feth1");
 
-    let tq = Arc::new(crossbeam_queue::ArrayQueue::new(100));
-    let rq = tq.clone();
-    let pair = Arc::new((Mutex::new(false), Condvar::new()));
-    let pair2 = pair.clone();
+        let tq = Arc::new(crossbeam_queue::ArrayQueue::new(100));
+        let rq = tq.clone();
+        let pair = Arc::new((Mutex::new(false), Condvar::new()));
+        let pair2 = pair.clone();
 
-    let _handle = thread::spawn(move || {
-        loop {
-            match rx.next() {
-                Ok(packet) => {
-                    println!(" rx 1 {:?}", packet);
-                    let &(ref lock, ref cvar) = &*pair2;
+        let _handle = thread::spawn(move || {
+            loop {
+                match rx.next() {
+                    Ok(packet) => {
+                        println!(" rx 1 {:?}", packet);
+                        let &(ref lock, ref cvar) = &*pair2;
 
-                    tq.push(Vec::from(packet)).unwrap();
-                    let mut started = lock.lock().unwrap();
-                    *started = true;
-                    cvar.notify_one();
-                    println!(" rx 2 {:?}", packet);
-                    // assert!(epkt.compare_with_slice(packet));
+                        tq.push(Vec::from(packet)).unwrap();
+                        let mut started = lock.lock().unwrap();
+                        *started = true;
+                        cvar.notify_one();
+                        println!(" rx 2 {:?}", packet);
+                        // assert!(epkt.compare_with_slice(packet));
+                    }
+                    Err(e) => {
+                        // If an error occurs, we can handle it here
+                        panic!("An error occurred while reading: {}", e);
+                    }
                 }
-                Err(e) => {
-                    // If an error occurs, we can handle it here
-                    panic!("An error occurred while reading: {}", e);
-                }
-            }
-        }
-    });
-
-    thread::sleep(Duration::from_millis(100));
-    let start = Instant::now();
-    let cnt = 100;
-    for _ in 0..cnt {
-        let &(ref lock, ref cvar) = &*pair;
-        let mut started = lock.lock().unwrap();
-        send_packet(&mut tx, &pkt);
-        while !*started {
-            started = cvar.wait(started).unwrap();
-        }
-        let p: Vec<u8> = rq.pop().unwrap();
-        // let p = mrx.recv().unwrap();
-        assert!(pkt.compare_with_slice(p.as_slice()));
-        *started = false;
-    }
-    let duration = start.elapsed();
-    println!("Time elapsed for {} packets is: {:?}", cnt, duration);
-
-    // _handle.join().unwrap();
-}
-
-#[test]
-// Simulate multi port Rx and pipe to a single a reciever queue
-fn packet_mc_test() {
-    let (tx, rx): (mpsc::SyncSender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::sync_channel(0);
-    let tq = Arc::new(crossbeam_queue::ArrayQueue::new(1000));
-    let rq = tq.clone();
-    // let pair = Arc::new((Mutex::new(false), Condvar::new()));
-    // let pair2 = pair.clone();
-
-    // ping packets on different channels
-    thread::spawn(move || loop {
-        match rx.recv() {
-            Ok(pkt) => {
-                //let &(ref lock, ref cvar) = &*pair2;
-                //let mut started = lock.lock().unwrap();
-                tq.push(Vec::from(pkt)).unwrap();
-                //*started = true;
-                //cvar.notify_one();
-            }
-            Err(_) => break,
-        };
-    });
-
-    let tcount = 10;
-    let pkt = sample_packet();
-    for _ in 0..tcount {
-        let p3 = pkt.clone();
-        let t3 = tx.clone();
-        thread::spawn(move || {
-            thread::sleep(Duration::from_millis(1));
-            for _ in 0..100 {
-                t3.send(p3.to_vec()).unwrap();
             }
         });
-    }
 
-    let rc = thread::spawn(move || {
-        let mut count = 0;
-        while count != tcount * 100 {
-            //let &(ref lock, ref cvar) = &*pair;
-            //let mut started = lock.lock().unwrap();
-            //while !*started {
-            //    started = cvar.wait(started).unwrap();
-            //}
-            while !rq.is_empty() {
-                let p: Vec<u8> = rq.pop().unwrap();
-                assert!(pkt.compare_with_slice(p.as_slice()));
-                count += 1;
+        thread::sleep(Duration::from_millis(100));
+        let start = Instant::now();
+        let cnt = 100;
+        for _ in 0..cnt {
+            let &(ref lock, ref cvar) = &*pair;
+            let mut started = lock.lock().unwrap();
+            send_packet(&mut tx, &pkt);
+            while !*started {
+                started = cvar.wait(started).unwrap();
             }
-            //*started = false;
+            let p: Vec<u8> = rq.pop().unwrap();
+            // let p = mrx.recv().unwrap();
+            assert!(pkt.compare_with_slice(p.as_slice()));
+            *started = false;
         }
-    });
-    rc.join().unwrap();
-}
+        let duration = start.elapsed();
+        println!("Time elapsed for {} packets is: {:?}", cnt, duration);
 
-#[test]
-fn packet_gen_test() {
-    let (tx, rx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::channel();
-    let (mtx, mrx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::channel();
-
-    // ping packets on different channels
-    thread::spawn(move || loop {
-        match rx.recv_timeout(Duration::from_millis(10)) {
-            Ok(pkt) => mtx.send(Vec::from(pkt)).unwrap(),
-            Err(_) => break,
-        };
-    });
-
-    let mut pkt = sample_packet();
-    // same packet in every iteration
-    let start = Instant::now();
-    let cnt = 100000;
-    for _ in 0..cnt {
-        tx.send(pkt.to_vec()).unwrap();
-        mrx.recv().unwrap();
+        // _handle.join().unwrap();
     }
-    println!("Same {} packets         : {:?}", cnt, start.elapsed());
 
-    // new packet in every iteration
-    let start = Instant::now();
-    for _ in 0..cnt {
+    #[test]
+    // Simulate multi port Rx and pipe to a single a reciever queue
+    fn packet_mc_test() {
+        let (tx, rx): (mpsc::SyncSender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::sync_channel(0);
+        let tq = Arc::new(crossbeam_queue::ArrayQueue::new(1000));
+        let rq = tq.clone();
+        // let pair = Arc::new((Mutex::new(false), Condvar::new()));
+        // let pair2 = pair.clone();
+
+        // ping packets on different channels
+        thread::spawn(move || loop {
+            match rx.recv() {
+                Ok(pkt) => {
+                    //let &(ref lock, ref cvar) = &*pair2;
+                    //let mut started = lock.lock().unwrap();
+                    tq.push(Vec::from(pkt)).unwrap();
+                    //*started = true;
+                    //cvar.notify_one();
+                }
+                Err(_) => break,
+            };
+        });
+
+        let tcount = 10;
         let pkt = sample_packet();
-        tx.send(pkt.to_vec()).unwrap();
-        mrx.recv().unwrap();
+        for _ in 0..tcount {
+            let p3 = pkt.clone();
+            let t3 = tx.clone();
+            thread::spawn(move || {
+                thread::sleep(Duration::from_millis(1));
+                for _ in 0..100 {
+                    t3.send(p3.to_vec()).unwrap();
+                }
+            });
+        }
+
+        let rc = thread::spawn(move || {
+            let mut count = 0;
+            while count != tcount * 100 {
+                //let &(ref lock, ref cvar) = &*pair;
+                //let mut started = lock.lock().unwrap();
+                //while !*started {
+                //    started = cvar.wait(started).unwrap();
+                //}
+                while !rq.is_empty() {
+                    let p: Vec<u8> = rq.pop().unwrap();
+                    assert!(pkt.compare_with_slice(p.as_slice()));
+                    count += 1;
+                }
+                //*started = false;
+            }
+        });
+        rc.join().unwrap();
     }
-    println!("New {} packets          : {:?}", cnt, start.elapsed());
 
-    // clone packet in each iteration
-    let start = Instant::now();
-    for _ in 0..cnt {
-        tx.send(pkt.clone().to_vec()).unwrap();
-        mrx.recv().unwrap();
+    #[test]
+    fn packet_gen_test() {
+        let (tx, rx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::channel();
+        let (mtx, mrx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::channel();
+
+        // ping packets on different channels
+        thread::spawn(move || loop {
+            match rx.recv_timeout(Duration::from_millis(10)) {
+                Ok(pkt) => mtx.send(Vec::from(pkt)).unwrap(),
+                Err(_) => break,
+            };
+        });
+
+        let mut pkt = sample_packet();
+        // same packet in every iteration
+        let start = Instant::now();
+        let cnt = 100000;
+        for _ in 0..cnt {
+            tx.send(pkt.to_vec()).unwrap();
+            mrx.recv().unwrap();
+        }
+        println!("Same {} packets         : {:?}", cnt, start.elapsed());
+
+        // new packet in every iteration
+        let start = Instant::now();
+        for _ in 0..cnt {
+            let pkt = sample_packet();
+            tx.send(pkt.to_vec()).unwrap();
+            mrx.recv().unwrap();
+        }
+        println!("New {} packets          : {:?}", cnt, start.elapsed());
+
+        // clone packet in each iteration
+        let start = Instant::now();
+        for _ in 0..cnt {
+            tx.send(pkt.clone().to_vec()).unwrap();
+            mrx.recv().unwrap();
+        }
+        println!("Clone {} packets        : {:?}", cnt, start.elapsed());
+
+        // update packet and then clone in each iteration
+        let start = Instant::now();
+        for i in 0..cnt {
+            let x: &mut crate::headers::Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
+            x.set_etype(i % 0xFFFF);
+            tx.send(pkt.clone().to_vec()).unwrap();
+            mrx.recv().unwrap();
+        }
+        println!("Update+Clone {} packets : {:?}", cnt, start.elapsed());
+        //handle.join().unwrap();
     }
-    println!("Clone {} packets        : {:?}", cnt, start.elapsed());
 
-    // update packet and then clone in each iteration
-    let start = Instant::now();
-    for i in 0..cnt {
-        let x: &mut crate::headers::Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
-        x.set_etype(i % 0xFFFF);
-        tx.send(pkt.clone().to_vec()).unwrap();
-        mrx.recv().unwrap();
-    }
-    println!("Update+Clone {} packets : {:?}", cnt, start.elapsed());
-    //handle.join().unwrap();
-}
+    #[test]
+    #[ignore]
+    fn dp_test() {
+        let intfs = vec!["feth0", "feth1"];
+        let mut dp = dataplane(intfs);
+        dp.run();
 
-#[test]
-#[ignore]
-fn dp_test() {
-    let intfs = vec!["feth0", "feth1"];
-    let mut dp = dataplane(intfs);
-    dp.run();
-
-    let cnt = 100;
-    for _ in 0..cnt {
-        let pkt = sample_packet();
-        &mut dp.send("feth1", &pkt);
-        // dp.verify_packet("feth0", &pkt)
-        dp.verify_packet_on_each_port(vec!["feth1", "feth0"], &pkt);
+        let cnt = 100;
+        for _ in 0..cnt {
+            let pkt = sample_packet();
+            &mut dp.send("feth1", &pkt);
+            // dp.verify_packet("feth0", &pkt)
+            dp.verify_packet_on_each_port(vec!["feth1", "feth0"], &pkt);
+        }
     }
 }
