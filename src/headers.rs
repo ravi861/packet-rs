@@ -67,7 +67,7 @@ macro_rules! make_header {
                 }
             }
             impl<T: AsMut<[u8]> + AsRef<[u8]>> $name<T> {
-                pub fn get_bytes(&self, msb: usize, lsb: usize) -> Vec<u8> {
+                pub fn bytes(&self, msb: usize, lsb: usize) -> Vec<u8> {
                     let bit_len = ::bitfield::size_of::<u8>() * 8;
                     assert_eq!((msb-lsb+1)%bit_len, 0);
                     let mut value: Vec<u8> = Vec::new();

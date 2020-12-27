@@ -36,13 +36,13 @@ mod tests {
         let mut ipv6 = IPv6::new();
         for a in dips {
             ipv6.set_bytes(IPv6::<Vec<u8>>::dst_msb(), IPv6::<Vec<u8>>::dst_lsb(), &a);
-            let b = ipv6.get_bytes(IPv6::<Vec<u8>>::dst_msb(), IPv6::<Vec<u8>>::dst_lsb());
+            let b = ipv6.bytes(IPv6::<Vec<u8>>::dst_msb(), IPv6::<Vec<u8>>::dst_lsb());
             let b = b.as_slice();
             assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 16);
         }
         for a in sips {
             ipv6.set_bytes(IPv6::<Vec<u8>>::src_msb(), IPv6::<Vec<u8>>::src_lsb(), &a);
-            let b = ipv6.get_bytes(IPv6::<Vec<u8>>::src_msb(), IPv6::<Vec<u8>>::src_lsb());
+            let b = ipv6.bytes(IPv6::<Vec<u8>>::src_msb(), IPv6::<Vec<u8>>::src_lsb());
             let b = b.as_slice();
             assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 16);
         }
