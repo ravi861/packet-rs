@@ -389,7 +389,7 @@ mod tests {
         // update packet and then clone in each iteration
         let start = Instant::now();
         for i in 0..cnt {
-            let x: &mut crate::headers::Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
+            let x: &mut crate::headers::Ethernet = (&mut pkt["Ethernet"]).into();
             x.set_etype(i % 0xFFFF);
             tx.send(pkt.clone().to_vec()).unwrap();
             mrx.recv().unwrap();

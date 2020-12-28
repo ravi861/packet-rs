@@ -116,6 +116,12 @@ impl Index<&str> for Packet {
     }
 }
 
+impl Clone for Packet {
+    fn clone(&self) -> Self {
+        self.clone_me()
+    }
+}
+
 impl IndexMut<&str> for Packet {
     fn index_mut<'a>(&'a mut self, index: &str) -> &'a mut Self::Output {
         let mut i = 0;
@@ -150,11 +156,11 @@ impl Packet {
             pktlen,
         }
     }
-    pub fn push(&mut self, hdr: impl Header) {
+    pub fn push(&mut self, hdr: impl Header) -> () {
         self.hdrlen += hdr.len();
         self.hdrs.push(hdr.to_owned());
     }
-    pub fn pop(&mut self) {
+    pub fn pop(&mut self) -> () {
         if self.hdrs.len() != 0 {
             let last = self.hdrs.pop().unwrap();
             self.hdrlen -= last.len();
@@ -178,7 +184,7 @@ impl Packet {
         }
         true
     }
-    pub fn show(&self) {
+    pub fn show(&self) -> () {
         for s in &self.hdrs {
             s.show();
         }
@@ -206,7 +212,7 @@ impl Packet {
         r.append(&mut payload);
         r
     }
-    pub fn clone(&self) -> Packet {
+    fn clone_me(&self) -> Packet {
         let mut pkt = Packet::new(self.pktlen);
         for s in &self.hdrs {
             pkt.hdrs.push(s.as_ref().clone());
@@ -235,19 +241,19 @@ impl Packet {
 }
 
 impl Packet {
-    pub fn ethernet(dst: &str, src: &str, etype: u16) -> Ethernet<Vec<u8>> {
-        let mut v: Vec<u8> = Vec::new();
-        v.extend_from_slice(&dst.to_mac_bytes());
-        v.extend_from_slice(&src.to_mac_bytes());
-        v.extend_from_slice(&etype.to_be_bytes());
-        Ethernet(v)
+    pub fn ethernet(dst: &str, src: &str, etype: u16) -> Ethernet {
+        let mut data: Vec<u8> = Vec::new();
+        data.extend_from_slice(&dst.to_mac_bytes());
+        data.extend_from_slice(&src.to_mac_bytes());
+        data.extend_from_slice(&etype.to_be_bytes());
+        Ethernet::from(data)
     }
-    pub fn vlan(pcp: u8, _cfi: u8, vid: u16, etype: u16) -> Vlan<Vec<u8>> {
-        let mut v: Vec<u8> = Vec::new();
-        v.extend_from_slice(&vid.to_be_bytes());
-        v[0] |= pcp << 5;
-        v.extend_from_slice(&etype.to_be_bytes());
-        Vlan(v)
+    pub fn vlan(pcp: u8, _cfi: u8, vid: u16, etype: u16) -> Vlan {
+        let mut data: Vec<u8> = Vec::new();
+        data.extend_from_slice(&vid.to_be_bytes());
+        data[0] |= pcp << 5;
+        data.extend_from_slice(&etype.to_be_bytes());
+        Vlan::from(data)
     }
     pub fn ipv4(
         ihl: u8,
@@ -259,22 +265,22 @@ impl Packet {
         src: &str,
         dst: &str,
         pktlen: u16,
-    ) -> IPv4<Vec<u8>> {
+    ) -> IPv4 {
         let ver = 0x40 | ihl;
         let mut ip_chksum: u16 = 0;
-        let mut v: Vec<u8> = Vec::new();
-        v.push(ver);
-        v.push(tos);
-        v.extend_from_slice(&pktlen.to_be_bytes());
-        v.extend_from_slice(&id.to_be_bytes());
-        v.extend_from_slice(&frag.to_be_bytes());
-        v.push(ttl);
-        v.push(proto);
-        v.extend_from_slice(&ip_chksum.to_be_bytes());
-        v.extend_from_slice(&src.to_ipv4_bytes());
-        v.extend_from_slice(&dst.to_ipv4_bytes());
-        ip_chksum = ipv4_checksum(v.as_slice());
-        let mut ip = IPv4(v);
+        let mut data: Vec<u8> = Vec::new();
+        data.push(ver);
+        data.push(tos);
+        data.extend_from_slice(&pktlen.to_be_bytes());
+        data.extend_from_slice(&id.to_be_bytes());
+        data.extend_from_slice(&frag.to_be_bytes());
+        data.push(ttl);
+        data.push(proto);
+        data.extend_from_slice(&ip_chksum.to_be_bytes());
+        data.extend_from_slice(&src.to_ipv4_bytes());
+        data.extend_from_slice(&dst.to_ipv4_bytes());
+        ip_chksum = ipv4_checksum(data.as_slice());
+        let mut ip = IPv4::from(data);
         ip.set_header_checksum(ip_chksum as u64);
         ip
     }
@@ -286,27 +292,27 @@ impl Packet {
         src: &str,
         dst: &str,
         pktlen: u16,
-    ) -> IPv6<Vec<u8>> {
+    ) -> IPv6 {
         let mut word: u32 = 0x6 << 28 & 0xF0000000;
         word |= (traffic_class as u32) << 20;
         word |= flow_label;
-        let mut v: Vec<u8> = Vec::new();
-        v.extend_from_slice(&word.to_be_bytes());
-        v.extend_from_slice(&pktlen.to_be_bytes());
-        v.push(next_hdr);
-        v.push(hop_limit);
-        v.extend_from_slice(&src.to_ipv6_bytes());
-        v.extend_from_slice(&dst.to_ipv6_bytes());
-        IPv6(v)
+        let mut data: Vec<u8> = Vec::new();
+        data.extend_from_slice(&word.to_be_bytes());
+        data.extend_from_slice(&pktlen.to_be_bytes());
+        data.push(next_hdr);
+        data.push(hop_limit);
+        data.extend_from_slice(&src.to_ipv6_bytes());
+        data.extend_from_slice(&dst.to_ipv6_bytes());
+        IPv6::from(data)
     }
-    pub fn udp(src: u16, dst: u16, length: u16) -> UDP<Vec<u8>> {
-        let mut v: Vec<u8> = Vec::new();
+    pub fn udp(src: u16, dst: u16, length: u16) -> UDP {
+        let mut data: Vec<u8> = Vec::new();
         let udp_chksum: u16 = 0;
-        v.extend_from_slice(&src.to_be_bytes());
-        v.extend_from_slice(&dst.to_be_bytes());
-        v.extend_from_slice(&length.to_be_bytes());
-        v.extend_from_slice(&udp_chksum.to_be_bytes());
-        UDP(v)
+        data.extend_from_slice(&src.to_be_bytes());
+        data.extend_from_slice(&dst.to_be_bytes());
+        data.extend_from_slice(&length.to_be_bytes());
+        data.extend_from_slice(&udp_chksum.to_be_bytes());
+        UDP::from(data)
     }
     pub fn tcp(
         src: u16,
@@ -319,25 +325,25 @@ impl Packet {
         window: u16,
         chksum: u16,
         urgent_ptr: u16,
-    ) -> TCP<Vec<u8>> {
-        let mut v: Vec<u8> = Vec::new();
-        v.extend_from_slice(&src.to_be_bytes());
-        v.extend_from_slice(&dst.to_be_bytes());
-        v.extend_from_slice(&seq_no.to_be_bytes());
-        v.extend_from_slice(&ack_no.to_be_bytes());
-        v.push(data_offset << 4 | (res & 0xff));
-        v.push(flags);
-        v.extend_from_slice(&window.to_be_bytes());
-        v.extend_from_slice(&chksum.to_be_bytes());
-        v.extend_from_slice(&urgent_ptr.to_be_bytes());
-        TCP(v)
+    ) -> TCP {
+        let mut data: Vec<u8> = Vec::new();
+        data.extend_from_slice(&src.to_be_bytes());
+        data.extend_from_slice(&dst.to_be_bytes());
+        data.extend_from_slice(&seq_no.to_be_bytes());
+        data.extend_from_slice(&ack_no.to_be_bytes());
+        data.push(data_offset << 4 | (res & 0xff));
+        data.push(flags);
+        data.extend_from_slice(&window.to_be_bytes());
+        data.extend_from_slice(&chksum.to_be_bytes());
+        data.extend_from_slice(&urgent_ptr.to_be_bytes());
+        TCP::from(data)
     }
-    pub fn vxlan(vni: u32) -> Vxlan<Vec<u8>> {
-        let mut v: Vec<u8> = Vec::new();
+    pub fn vxlan(vni: u32) -> Vxlan {
+        let mut data: Vec<u8> = Vec::new();
         let flags: u32 = 0x8;
-        v.extend_from_slice(&(flags << 24 as u32).to_be_bytes());
-        v.extend_from_slice(&(vni << 8 as u32).to_be_bytes());
-        Vxlan(v)
+        data.extend_from_slice(&(flags << 24 as u32).to_be_bytes());
+        data.extend_from_slice(&(vni << 8 as u32).to_be_bytes());
+        Vxlan::from(data)
     }
 
     fn ipv4_packet(

@@ -47,7 +47,7 @@ pub trait Header: Send {
 /// );
 /// ```
 #[macro_export]
-macro_rules! make_header {
+macro_rules! make_header_l {
     (
         $name: ident $size: literal
         ( $($field: ident: $start: literal-$end: literal),* )
@@ -210,7 +210,7 @@ macro_rules! make_header {
         $name: ident $size: literal
         ( $($field: ident: $start: literal-$end: literal),* )
     ) => {
-        make_header!(
+        make_header_l!(
             $name $size
             (
                 $(
@@ -228,10 +228,10 @@ use pyo3::prelude::*;
 #[cfg(not(feature = "python-module"))]
 extern crate pyo3_nullify;
 #[cfg(not(feature = "python-module"))]
-use pyo3_nullify::*;
+pub use pyo3_nullify::*;
 
 #[macro_export]
-macro_rules! make_header1 {
+macro_rules! make_header {
     (
         $name: ident $size: literal
         ( $($field: ident: $start: literal-$end: literal),* )
@@ -240,7 +240,7 @@ macro_rules! make_header1 {
         paste! {
             #[pyclass]
             pub struct $name {
-                inner: Vec<u8>
+                data: Vec<u8>
             }
             impl ::bitfield::BitRange<u64> for $name {
                 fn bit_range(&self, msb: usize, lsb: usize) -> u64 {
@@ -249,7 +249,7 @@ macro_rules! make_header1 {
                     let mut value: u64 = 0;
                     for i in lsb..=msb {
                         value <<= 1;
-                        value |= ((self.inner[i / bit_len] >> (bit_len - i % bit_len - 1)) & 1) as u64;
+                        value |= ((self.data[i / bit_len] >> (bit_len - i % bit_len - 1)) & 1) as u64;
                     }
                     value << (value_bit_len - (msb - lsb + 1)) >> (value_bit_len - (msb - lsb + 1))
                 }
@@ -257,8 +257,8 @@ macro_rules! make_header1 {
                     let bit_len = ::bitfield::size_of::<u8>() * 8;
                     let mut value = value;
                     for i in (lsb..=msb).rev() {
-                        self.inner[i / bit_len] &= !(1 << (bit_len - i % bit_len - 1));
-                        self.inner[i / bit_len] |= ((value & 1) as u8) << (bit_len - i % bit_len - 1);
+                        self.data[i / bit_len] &= !(1 << (bit_len - i % bit_len - 1));
+                        self.data[i / bit_len] |= ((value & 1) as u8) << (bit_len - i % bit_len - 1);
                         value >>= 1;
                     }
                 }
@@ -267,7 +267,11 @@ macro_rules! make_header1 {
             impl $name {
                 #[new]
                 pub fn new() -> $name {
-                    $name{ inner: $x}
+                    $name{ data: $x}
+                }
+                #[staticmethod]
+                pub fn from(data: Vec<u8>) -> $name {
+                    $name{ data }
                 }
                 $(
                 pub fn $field(&self) -> u64 {
@@ -351,10 +355,10 @@ macro_rules! make_header1 {
                     )*
                 }
                 pub fn clone(&self) -> $name {
-                    $name{ inner: self.inner.clone() }
+                    $name{ data: self.data.clone() }
                 }
                 pub fn as_slice(&self) -> &[u8] {
-                    self.inner.as_ref()
+                    self.data.as_ref()
                 }
             }
             /*
@@ -427,7 +431,7 @@ macro_rules! make_header1 {
         $name: ident $size: literal
         ( $($field: ident: $start: literal-$end: literal),* )
     ) => {
-        make_header1!(
+        make_header!(
             $name $size
             (
                 $(
@@ -547,7 +551,7 @@ Vxlan 8
 vec![0x8, 0x0 , 0x0, 0x0, 0x0, 0x07, 0xd0, 0x0]
 );
 
-make_header1!(
+make_header!(
 Tester 40
 (
     bit1: 0-0,

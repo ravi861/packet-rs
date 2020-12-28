@@ -35,14 +35,14 @@ mod tests {
 
         let mut ipv6 = IPv6::new();
         for a in dips {
-            ipv6.set_bytes(IPv6::<Vec<u8>>::dst_msb(), IPv6::<Vec<u8>>::dst_lsb(), &a);
-            let b = ipv6.bytes(IPv6::<Vec<u8>>::dst_msb(), IPv6::<Vec<u8>>::dst_lsb());
+            ipv6.set_bytes(IPv6::dst_msb(), IPv6::dst_lsb(), &a);
+            let b = ipv6.bytes(IPv6::dst_msb(), IPv6::dst_lsb());
             let b = b.as_slice();
             assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 16);
         }
         for a in sips {
-            ipv6.set_bytes(IPv6::<Vec<u8>>::src_msb(), IPv6::<Vec<u8>>::src_lsb(), &a);
-            let b = ipv6.bytes(IPv6::<Vec<u8>>::src_msb(), IPv6::<Vec<u8>>::src_lsb());
+            ipv6.set_bytes(IPv6::src_msb(), IPv6::src_lsb(), &a);
+            let b = ipv6.bytes(IPv6::src_msb(), IPv6::src_lsb());
             let b = b.as_slice();
             assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 16);
         }
@@ -59,7 +59,7 @@ mod tests {
         )
         );
         let data: Vec<u8> = vec![0; 10];
-        let mut my_header = MyOwnHeader(data);
+        let mut my_header = MyOwnHeader::from(data);
         my_header.as_slice();
         my_header.show();
 
@@ -73,7 +73,6 @@ mod tests {
     #[test]
     fn ethernet_header_test() {
         let mut eth = Ethernet::new();
-        println!("{:?}", eth.0);
         eth.show();
 
         // dst
@@ -91,24 +90,40 @@ mod tests {
         eth.set_etype(0x8100 as u64);
         assert_eq!(0x8100, eth.etype());
 
-        let data = [
-            0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0x81, 0x00,
+        let a = [
+            0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0x86, 0xdd,
         ];
-        let ethernet = Ethernet(data);
-        ethernet.as_slice();
-        ethernet.show();
+        let eth = Ethernet::from(a.to_vec());
+        let b = eth.as_slice();
+        assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 14);
+        assert_eq!(0xaaaaaaaaaaaa, eth.dst());
+        assert_eq!(0xbbbbbbbbbbbb, eth.src());
+        assert_eq!(0x86dd, eth.etype());
     }
     #[test]
     fn vlan_header_test() {
-        let vlan = Vlan::new();
+        let mut vlan = Vlan::new();
         vlan.show();
-        assert_eq!(vlan.vid(), 0xa);
-        assert_eq!(vlan.etype(), 0x800);
 
-        let data = [0x7f, 0xff, 0x08, 0x00];
-        let vlan = Vlan(data);
-        vlan.as_slice();
-        vlan.show();
+        // pcp
+        assert_eq!(vlan.pcp(), 0x0);
+        vlan.set_pcp(0x5 as u64);
+        assert_eq!(vlan.pcp(), 0x5);
+
+        // cfi
+        assert_eq!(vlan.cfi(), 0x0);
+        vlan.set_cfi(0x1 as u64);
+        assert_eq!(vlan.cfi(), 0x1);
+
+        // vid
+        assert_eq!(vlan.vid(), 0xa);
+        vlan.set_vid(0xb as u64);
+        assert_eq!(vlan.vid(), 0xb);
+
+        let a = [0x7f, 0xff, 0x08, 0x00];
+        let vlan = Vlan::from(a.to_vec());
+        let b = vlan.as_slice();
+        assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 4);
         assert_eq!(vlan.vid(), 4095);
         assert_eq!(vlan.pcp(), 3);
         assert_eq!(vlan.cfi(), 1);
@@ -123,14 +138,14 @@ mod tests {
             0x45, 0x00, 0x00, 0x14, 0x00, 0x33, 0x40, 0xdd, 0x40, 0x06, 0xfa, 0xec, 0xa, 0xa, 0xa,
             0x1, 0xb, 0xb, 0xb, 0x1,
         ];
-        let ipv4 = IPv4(data);
+        let ipv4 = IPv4::from(data.to_vec());
         ipv4.show();
 
         let ipv4 = Packet::ipv4(5, 10, 4, 64, 0xdd, 6, "10.10.10.1", "11.11.11.1", 86);
         assert_eq!(ipv4_checksum_verify(ipv4.as_slice()), 0);
 
-        let data: Vec<u8> = vec![0; IPv6::<Vec<u8>>::size()];
-        let ipv6 = IPv6(data);
+        let data: Vec<u8> = vec![0; IPv6::size()];
+        let ipv6 = IPv6::from(data);
         ipv6.as_slice();
         ipv6.show();
     }
@@ -189,7 +204,7 @@ mod tests {
                         false,
                         100,
                     );
-                    let ip: &IPv4<Vec<u8>> = (&pkt["IPv4"]).into();
+                    let ip: &IPv4 = (&pkt["IPv4"]).into();
                     assert_eq!(ipv4_checksum_verify(ip.as_slice()), 0);
 
                     let ipv4 = Packet::ipv4(5, 0, 115, ttl, 0, 6, sip, dip, 86);
@@ -344,7 +359,7 @@ mod tests {
         );
         pkt.show();
         let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
-        let x: &mut Ethernet<Vec<u8>> = x.into();
+        let x: &mut Ethernet = x.into();
         x.set_etype(0x86dd);
         x.show();
 
@@ -355,26 +370,26 @@ mod tests {
         assert_eq!(true, pkt.compare_with_slice(new_pkt.to_vec().as_slice()));
 
         // immutable
-        let x: &Ethernet<Vec<u8>> = pkt.get_header("Ethernet");
+        let x: &Ethernet = pkt.get_header("Ethernet");
         println!("{}", x.etype());
         x.show();
 
         let y: &Box<dyn Header> = &pkt["Ethernet"];
-        let x: &Ethernet<Vec<u8>> = y.into();
+        let x: &Ethernet = y.into();
         println!("{}", x.etype());
         x.show();
 
-        let x: &Ethernet<Vec<u8>> = (&pkt["Ethernet"]).into();
+        let x: &Ethernet = (&pkt["Ethernet"]).into();
         println!("{}", x.etype());
         x.show();
 
         // mutable
-        let x: &mut Ethernet<Vec<u8>> = pkt.get_header_mut("Ethernet");
+        let x: &mut Ethernet = pkt.get_header_mut("Ethernet");
         x.set_etype(0x9999);
         x.show();
 
         let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
-        let x: &mut Ethernet<Vec<u8>> = x.into();
+        let x: &mut Ethernet = x.into();
         x.set_etype(0x9999);
         x.show();
     }
@@ -455,7 +470,7 @@ mod tests {
         // update packet and then clone in each iteration
         let start = Instant::now();
         for i in 0..cnt {
-            let x: &mut rscapy::headers::Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
+            let x: &mut Ethernet = (&mut pkt["Ethernet"]).into();
             x.set_etype(i % 0xFFFF);
             let p = pkt.clone();
             p.to_vec();
