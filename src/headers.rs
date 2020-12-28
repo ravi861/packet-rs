@@ -274,11 +274,13 @@ macro_rules! make_header {
                     $name{ data }
                 }
                 $(
+                #[getter]
                 pub fn $field(&self) -> u64 {
                     use ::bitfield::BitRange;
                     let raw_value: u64 = self.bit_range($end, $start);
                     ::bitfield::Into::into(raw_value)
                 }
+                #[setter]
                 pub fn [<set_ $field>](&mut self, value: u64) {
                     use ::bitfield::BitRange;
                     self.set_bit_range($end, $start, ::bitfield::Into::<u64>::into(value));
