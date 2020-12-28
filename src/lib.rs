@@ -15,11 +15,12 @@ extern crate pyo3_nullify;
 use pyo3_nullify::*;
 
 #[cfg(feature = "python-module")]
-use headers::{Ethernet, IPv4, IPv6, Vlan, Vxlan, TCP, UDP};
+use headers::*;
 
 #[cfg(feature = "python-module")]
 use pyo3::{prelude::*, wrap_pyfunction};
 
+#[pyclass]
 pub struct Packet {
     hdrs: Vec<Box<dyn Header>>,
     hdrlen: usize,
@@ -36,7 +37,6 @@ pub trait DataPlane: Send {
 #[cfg(feature = "python-module")]
 #[pymodule]
 fn rscapy(_py: Python, m: &PyModule) -> PyResult<()> {
-    // m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     m.add_class::<Ethernet>()?;
     m.add_class::<Vlan>()?;
     m.add_class::<IPv4>()?;
@@ -44,6 +44,7 @@ fn rscapy(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<UDP>()?;
     m.add_class::<TCP>()?;
     m.add_class::<Vxlan>()?;
+    m.add_class::<Packet>()?;
 
     Ok(())
 }
