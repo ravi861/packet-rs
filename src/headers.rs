@@ -222,6 +222,7 @@ macro_rules! make_header_l {
     };
 }
 
+use crate::Packet;
 #[cfg(feature = "python-module")]
 use pyo3::prelude::*;
 
@@ -229,6 +230,24 @@ use pyo3::prelude::*;
 extern crate pyo3_nullify;
 #[cfg(not(feature = "python-module"))]
 pub use pyo3_nullify::*;
+
+impl<'source> ::pyo3::FromPyObject<'source> for Box<dyn Header> {
+    fn extract(obj: &'source ::pyo3::PyAny) -> ::pyo3::PyResult<Self> {
+        let b = match obj.str()?.to_str()? {
+            "Ethernet" => Ok(Ethernet::extract(obj)?.to_owned()),
+            "Vlan" => Ok(Vlan::extract(obj)?.to_owned()),
+            "IPv4" => Ok(IPv4::extract(obj)?.to_owned()),
+            "IPv6" => Ok(IPv6::extract(obj)?.to_owned()),
+            "UDP" => Ok(UDP::extract(obj)?.to_owned()),
+            "TCP" => Ok(TCP::extract(obj)?.to_owned()),
+            "Vxlan" => Ok(Vxlan::extract(obj)?.to_owned()),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Error message",
+            )),
+        };
+        b
+    }
+}
 
 #[macro_export]
 macro_rules! make_header {
@@ -239,7 +258,9 @@ macro_rules! make_header {
     ) => {
         paste! {
             #[pyclass]
+            #[derive(FromPyObject)]
             pub struct $name {
+                #[pyo3(get)]
                 data: Vec<u8>
             }
             impl ::bitfield::BitRange<u64> for $name {
@@ -399,6 +420,24 @@ macro_rules! make_header {
                         None => panic!("Header is not a {}", stringify!($name)),
                     };
                     b
+                }
+            }
+            #[pyproto]
+            impl ::pyo3::PyNumberProtocol for $name {
+                fn __add__(lhs: ::pyo3::PyObject, rhs: ::pyo3::PyObject) -> ::pyo3::PyResult<Packet> {
+                    let gil = ::pyo3::Python::acquire_gil();
+                    let me: $name = lhs.extract(gil.python()).unwrap();
+                    let mut pkt = Packet::new(300);
+                    pkt.push(me);
+                    let other: Box<dyn Header> = rhs.extract(gil.python()).unwrap();
+                    pkt.push_boxed_header(other);
+                    Ok(pkt)
+                }
+            }
+            #[pyproto]
+            impl ::pyo3::PyObjectProtocol for $name {
+                fn __str__(&self) -> ::pyo3::PyResult<String> {
+                    Ok(String::from(stringify!($name)))
                 }
             }
             impl Header for $name {

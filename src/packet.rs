@@ -10,7 +10,8 @@ extern crate pyo3_nullify;
 use pyo3_nullify::*;
 
 #[cfg(feature = "python-module")]
-use pyo3::{prelude::*, wrap_pyfunction};
+use pyo3::prelude::*;
+use pyo3::PyNumberProtocol;
 
 fn ipv4_checksum(v: &[u8]) -> u16 {
     let mut chksum: u32 = 0;
@@ -168,6 +169,10 @@ impl Packet {
         self.hdrlen += hdr.len();
         self.hdrs.push(hdr.to_owned());
     }
+    pub fn push_boxed_header(&mut self, hdr: Box<dyn Header>) {
+        self.hdrlen += hdr.len();
+        self.hdrs.push(hdr);
+    }
     pub fn pop(&mut self) -> () {
         if self.hdrs.len() != 0 {
             let last = self.hdrs.pop().unwrap();
@@ -191,6 +196,18 @@ impl Packet {
         b
     }
 }
+
+#[pyproto]
+impl PyNumberProtocol for Packet {
+    fn __add__(lhs: PyObject, rhs: PyObject) -> PyResult<Packet> {
+        let gil = Python::acquire_gil();
+        let mut x: Packet = lhs.extract(gil.python()).unwrap();
+        let y: Box<dyn Header> = rhs.extract(gil.python())?;
+        x.push_boxed_header(y);
+        Ok(x)
+    }
+}
+
 #[pymethods]
 impl Packet {
     pub fn compare(&self, pkt: &Packet) -> bool {
