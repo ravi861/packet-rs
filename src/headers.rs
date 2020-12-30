@@ -222,6 +222,7 @@ macro_rules! make_header_l {
     };
 }
 
+#[cfg(feature = "python-module")]
 use crate::Packet;
 #[cfg(feature = "python-module")]
 use pyo3::prelude::*;
@@ -231,6 +232,7 @@ extern crate pyo3_nullify;
 #[cfg(not(feature = "python-module"))]
 pub use pyo3_nullify::*;
 
+#[cfg(feature = "python-module")]
 impl<'source> ::pyo3::FromPyObject<'source> for Box<dyn Header> {
     fn extract(obj: &'source ::pyo3::PyAny) -> ::pyo3::PyResult<Self> {
         let b = match obj.str()?.to_str()? {
@@ -423,6 +425,7 @@ macro_rules! make_header {
                 }
             }
             #[pyproto]
+            #[cfg(feature = "python-module")]
             impl ::pyo3::PyNumberProtocol for $name {
                 fn __add__(lhs: ::pyo3::PyObject, rhs: ::pyo3::PyObject) -> ::pyo3::PyResult<Packet> {
                     let gil = ::pyo3::Python::acquire_gil();
@@ -435,6 +438,7 @@ macro_rules! make_header {
                 }
             }
             #[pyproto]
+            #[cfg(feature = "python-module")]
             impl ::pyo3::PyObjectProtocol for $name {
                 fn __str__(&self) -> ::pyo3::PyResult<String> {
                     Ok(String::from(stringify!($name)))

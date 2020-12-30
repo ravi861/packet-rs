@@ -11,7 +11,6 @@ use pyo3_nullify::*;
 
 #[cfg(feature = "python-module")]
 use pyo3::prelude::*;
-use pyo3::PyNumberProtocol;
 
 fn ipv4_checksum(v: &[u8]) -> u16 {
     let mut chksum: u32 = 0;
@@ -113,6 +112,8 @@ impl Index<&str> for Packet {
     type Output = Box<dyn Header>;
 
     fn index<'a>(&'a self, index: &str) -> &'a Self::Output {
+        self.hdrs.iter().find(|&x| x.name() == index).unwrap()
+        /*
         let mut i = 0;
         for s in &self.hdrs {
             if s.name() == index {
@@ -121,12 +122,15 @@ impl Index<&str> for Packet {
             i += 1;
         }
         self.hdrs.get(i).unwrap()
+        */
         // &self.buffer.get(index).unwrap()
     }
 }
 
 impl IndexMut<&str> for Packet {
     fn index_mut<'a>(&'a mut self, index: &str) -> &'a mut Self::Output {
+        self.hdrs.iter_mut().find(|x| x.name() == index).unwrap()
+        /*
         let mut i = 0;
         for s in &self.hdrs {
             if s.name() == index {
@@ -135,6 +139,7 @@ impl IndexMut<&str> for Packet {
             i += 1;
         }
         self.hdrs.get_mut(i).unwrap()
+        */
         // self.buffer.get_mut(index).unwrap()
     }
 }
@@ -158,13 +163,6 @@ impl Clone for Packet {
 }
 
 impl Packet {
-    pub fn new(pktlen: usize) -> Packet {
-        Packet {
-            hdrs: Vec::new(),
-            hdrlen: 0,
-            pktlen,
-        }
-    }
     pub fn push(&mut self, hdr: impl Header) {
         self.hdrlen += hdr.len();
         self.hdrs.push(hdr.to_owned());
@@ -198,7 +196,8 @@ impl Packet {
 }
 
 #[pyproto]
-impl PyNumberProtocol for Packet {
+#[cfg(feature = "python-module")]
+impl pyo3::PyNumberProtocol for Packet {
     fn __add__(lhs: PyObject, rhs: PyObject) -> PyResult<Packet> {
         let gil = Python::acquire_gil();
         let mut x: Packet = lhs.extract(gil.python()).unwrap();
@@ -210,6 +209,14 @@ impl PyNumberProtocol for Packet {
 
 #[pymethods]
 impl Packet {
+    #[new]
+    pub fn new(pktlen: usize) -> Packet {
+        Packet {
+            hdrs: Vec::new(),
+            hdrlen: 0,
+            pktlen,
+        }
+    }
     pub fn compare(&self, pkt: &Packet) -> bool {
         let a = pkt.to_vec();
         self.compare_with_slice(a.as_slice())
