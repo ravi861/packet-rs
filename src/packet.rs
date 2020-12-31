@@ -259,6 +259,28 @@ impl Packet {
         Ethernet::from(data)
     }
     #[staticmethod]
+    pub fn arp(
+        opcode: u16,
+        sender_mac: &str,
+        target_mac: &str,
+        sender_ip: &str,
+        target_ip: &str,
+    ) -> ARP {
+        let mut data: Vec<u8> = Vec::new();
+        let hwtype: u16 = 1;
+        let ptype: u16 = 0x800;
+        data.extend_from_slice(&hwtype.to_be_bytes());
+        data.extend_from_slice(&ptype.to_be_bytes());
+        data.push(6 as u8);
+        data.push(4 as u8);
+        data.extend_from_slice(&opcode.to_be_bytes());
+        data.extend_from_slice(&sender_mac.to_mac_bytes());
+        data.extend_from_slice(&sender_ip.to_ipv4_bytes());
+        data.extend_from_slice(&target_mac.to_mac_bytes());
+        data.extend_from_slice(&target_ip.to_ipv4_bytes());
+        ARP::from(data)
+    }
+    #[staticmethod]
     pub fn vlan(pcp: u8, _cfi: u8, vid: u16, etype: u16) -> Vlan {
         let mut data: Vec<u8> = Vec::new();
         data.extend_from_slice(&vid.to_be_bytes());
@@ -363,7 +385,7 @@ impl Packet {
     }
 
     #[staticmethod]
-    fn create_eth_packet(
+    pub fn create_eth_packet(
         eth_dst: &str,
         eth_src: &str,
         vlan_enable: bool,
@@ -383,7 +405,36 @@ impl Packet {
     }
 
     #[staticmethod]
-    fn create_ipv4_packet(
+    pub fn create_arp_packet(
+        eth_dst: &str,
+        eth_src: &str,
+        vlan_enable: bool,
+        vlan_vid: u16,
+        vlan_pcp: u8,
+        opcode: u16,
+        sender_mac: &str,
+        target_mac: &str,
+        sender_ip: &str,
+        target_ip: &str,
+        pktlen: u16,
+    ) -> Packet {
+        let mut pkt = Packet::create_eth_packet(
+            eth_dst,
+            eth_src,
+            vlan_enable,
+            vlan_vid,
+            vlan_pcp,
+            ETHERTYPE_ARP,
+            pktlen,
+        );
+        pkt.push(Packet::arp(
+            opcode, sender_mac, target_mac, sender_ip, target_ip,
+        ));
+        pkt
+    }
+
+    #[staticmethod]
+    pub fn create_ipv4_packet(
         eth_dst: &str,
         eth_src: &str,
         vlan_enable: bool,
@@ -422,7 +473,7 @@ impl Packet {
     }
 
     #[staticmethod]
-    fn create_ipv6_packet(
+    pub fn create_ipv6_packet(
         eth_dst: &str,
         eth_src: &str,
         vlan_enable: bool,
@@ -713,6 +764,57 @@ impl Packet {
             l4_len -= VLAN_HDR_LEN;
         }
         let udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
+        pkt.push(udp);
+
+        pkt.push(Packet::vxlan(vxlan_vni));
+
+        pkt = pkt + inner_pkt;
+        pkt
+    }
+
+    #[staticmethod]
+    pub fn create_vxlanv6_packet(
+        eth_dst: &str,
+        eth_src: &str,
+        vlan_enable: bool,
+        vlan_vid: u16,
+        vlan_pcp: u8,
+        ip_traffic_class: u8,
+        ip_flow_label: u32,
+        ip_hop_limit: u8,
+        ip_src: &str,
+        ip_dst: &str,
+        udp_dst: u16,
+        udp_src: u16,
+        _udp_checksum: bool,
+        vxlan_vni: u32,
+        inner_pkt: Packet,
+    ) -> Packet {
+        let pktlen = ETHERNET_HDR_LEN
+            + IPV6_HDR_LEN
+            + UDP_HDR_LEN
+            + VXLAN_HDR_LEN
+            + inner_pkt.to_vec().len();
+        let mut pkt = Packet::create_ipv6_packet(
+            eth_dst,
+            eth_src,
+            vlan_enable,
+            vlan_vid,
+            vlan_pcp,
+            ip_traffic_class,
+            ip_flow_label,
+            IP_PROTOCOL_UDP,
+            ip_hop_limit,
+            ip_src,
+            ip_dst,
+            pktlen as u16,
+        );
+        let mut l4_len = pktlen - IPV6_HDR_LEN - ETHERNET_HDR_LEN;
+        if vlan_enable {
+            l4_len -= VLAN_HDR_LEN;
+        }
+        let mut udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
+        udp.set_checksum(0xffff);
         pkt.push(udp);
 
         pkt.push(Packet::vxlan(vxlan_vni));

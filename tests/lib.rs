@@ -343,12 +343,61 @@ mod tests {
             _udp.clone(),
         );
 
+        let _vxlanv6 = Packet::create_vxlanv6_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            4,
+            64,
+            "AAAA::1",
+            "BBBB::1",
+            4789,
+            9090,
+            false,
+            2000,
+            _udp.clone(),
+        );
+
+        let _arp_req = Packet::create_arp_packet(
+            "FF:FF:FF:FF:FF:FF",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            1,
+            "00:06:07:08:09:0a",
+            "00:00:00:00:00:00",
+            "10.10.10.1",
+            "0.0.0.0",
+            60,
+        );
+
+        let _arp_resp = Packet::create_arp_packet(
+            "00:06:07:08:09:0a",
+            "00:01:02:03:04:05",
+            false,
+            10,
+            3,
+            2,
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            "10.10.10.2",
+            "10.10.10.1",
+            60,
+        );
+
         pcap_write(vec![
             _tcp.to_vec().as_slice(),
             _udp.to_vec().as_slice(),
             _tcpv6.to_vec().as_slice(),
             _udpv6.to_vec().as_slice(),
             _vxlan.to_vec().as_slice(),
+            _vxlanv6.to_vec().as_slice(),
+            _arp_req.to_vec().as_slice(),
+            _arp_resp.to_vec().as_slice(),
         ]);
     }
     #[test]
