@@ -5,9 +5,13 @@ use rscapy::headers::*;
 
 use std::time::Instant;
 
+mod pcap;
+
 #[cfg(test)]
 mod tests {
+
     use super::*;
+    use pcap::pcap_write;
     use rscapy::packet::*;
     use rscapy::Packet;
 
@@ -216,8 +220,22 @@ mod tests {
         }
     }
     #[test]
+    fn arp_header_test() {
+        let arp = ARP::new();
+        arp.show();
+        assert_eq!(arp.hwtype(), 0x1);
+        assert_eq!(arp.proto_type(), 0x800);
+        assert_eq!(arp.hwlen(), 0x6);
+        assert_eq!(arp.proto_len(), 0x4);
+        assert_eq!(arp.opcode(), 1);
+        assert_eq!(arp.sender_hw_addr(), 0x000102030405);
+        assert_eq!(arp.sender_proto_addr(), 0xa000001);
+        assert_eq!(arp.target_hw_addr(), 0x0000000000);
+        assert_eq!(arp.target_proto_addr(), 0x0);
+    }
+    #[test]
     fn create_packet_test() {
-        let _pkt = Packet::create_tcp_packet(
+        let _tcp = Packet::create_tcp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -231,21 +249,20 @@ mod tests {
             115,
             0,
             Vec::new(),
-            80,
+            1234,
             9090,
             100,
             101,
+            5,
             0,
-            0,
-            1,
-            0,
+            0x10,
+            2,
             0,
             false,
             100,
         );
-        // pkt.show();
 
-        let _pkt = Packet::create_udp_packet(
+        let _udp = Packet::create_udp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -259,14 +276,13 @@ mod tests {
             0,
             0x4000,
             Vec::new(),
-            80,
+            1234,
             9090,
             false,
             129,
         );
-        // pkt.show();
 
-        let _pkt = Packet::create_tcpv6_packet(
+        let _tcpv6 = Packet::create_tcpv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -277,20 +293,19 @@ mod tests {
             64,
             "AAAA::1",
             "BBBB::1",
-            80,
+            1234,
             9090,
             100,
             101,
-            0,
+            5,
             0,
             1,
             0,
             0,
             100,
         );
-        // pkt.show();
 
-        let _pkt = Packet::create_udpv6_packet(
+        let _udpv6 = Packet::create_udpv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -301,13 +316,13 @@ mod tests {
             64,
             "AAAA::1",
             "BBBB::1",
-            80,
+            1234,
             9090,
+            false,
             129,
         );
-        // pkt.show();
 
-        let _pkt = Packet::create_vxlan_packet(
+        let _vxlan = Packet::create_vxlan_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -321,13 +336,20 @@ mod tests {
             0,
             0x4000,
             Vec::new(),
-            80,
+            4789,
             9090,
             false,
             2000,
-            _pkt,
+            _udp.clone(),
         );
-        // _pkt.show();
+
+        pcap_write(vec![
+            _tcp.to_vec().as_slice(),
+            _udp.to_vec().as_slice(),
+            _tcpv6.to_vec().as_slice(),
+            _udpv6.to_vec().as_slice(),
+            _vxlan.to_vec().as_slice(),
+        ]);
     }
     #[test]
     fn update_packet_test() {

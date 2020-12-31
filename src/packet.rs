@@ -46,6 +46,7 @@ pub const IP_PROTOCOL_UDP: u8 = 17;
 pub const ETHERNET_HDR_LEN: usize = 14;
 pub const VLAN_HDR_LEN: usize = 4;
 pub const IPV4_HDR_LEN: usize = 20;
+pub const IPV6_HDR_LEN: usize = 40;
 pub const UDP_HDR_LEN: usize = 8;
 pub const TCP_HDR_LEN: usize = 20;
 pub const VXLAN_HDR_LEN: usize = 8;
@@ -113,34 +114,12 @@ impl Index<&str> for Packet {
 
     fn index<'a>(&'a self, index: &str) -> &'a Self::Output {
         self.hdrs.iter().find(|&x| x.name() == index).unwrap()
-        /*
-        let mut i = 0;
-        for s in &self.hdrs {
-            if s.name() == index {
-                break;
-            }
-            i += 1;
-        }
-        self.hdrs.get(i).unwrap()
-        */
-        // &self.buffer.get(index).unwrap()
     }
 }
 
 impl IndexMut<&str> for Packet {
     fn index_mut<'a>(&'a mut self, index: &str) -> &'a mut Self::Output {
         self.hdrs.iter_mut().find(|x| x.name() == index).unwrap()
-        /*
-        let mut i = 0;
-        for s in &self.hdrs {
-            if s.name() == index {
-                break;
-            }
-            i += 1;
-        }
-        self.hdrs.get_mut(i).unwrap()
-        */
-        // self.buffer.get_mut(index).unwrap()
     }
 }
 
@@ -466,7 +445,7 @@ impl Packet {
             ETHERTYPE_IPV6,
             pktlen,
         );
-        let mut ip_len = pktlen - ETHERNET_HDR_LEN as u16;
+        let mut ip_len = pktlen - ETHERNET_HDR_LEN as u16 - IPV6_HDR_LEN as u16;
         if vlan_enable {
             ip_len -= VLAN_HDR_LEN as u16;
         }
@@ -659,6 +638,7 @@ impl Packet {
         ip_dst: &str,
         udp_dst: u16,
         udp_src: u16,
+        _udp_checksum: bool,
         pktlen: usize,
     ) -> Packet {
         let mut pkt = Packet::create_ipv6_packet(
@@ -675,11 +655,12 @@ impl Packet {
             ip_dst,
             pktlen as u16,
         );
-        let mut l4_len = pktlen - IPV4_HDR_LEN - ETHERNET_HDR_LEN;
+        let mut l4_len = pktlen - IPV6_HDR_LEN - ETHERNET_HDR_LEN;
         if vlan_enable {
             l4_len -= VLAN_HDR_LEN;
         }
-        let udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
+        let mut udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
+        udp.set_checksum(0xffff);
         pkt.push(udp);
         pkt
     }
@@ -705,7 +686,11 @@ impl Packet {
         vxlan_vni: u32,
         inner_pkt: Packet,
     ) -> Packet {
-        let pktlen = IPV4_HDR_LEN + UDP_HDR_LEN + VXLAN_HDR_LEN + inner_pkt.to_vec().len();
+        let pktlen = ETHERNET_HDR_LEN
+            + IPV4_HDR_LEN
+            + UDP_HDR_LEN
+            + VXLAN_HDR_LEN
+            + inner_pkt.to_vec().len();
         let mut pkt = Packet::create_ipv4_packet(
             eth_dst,
             eth_src,
