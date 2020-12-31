@@ -564,16 +564,6 @@ ICMP 4
 vec![0x8, 0x0, 0x0, 0x0, 0x0, 0x0]
 );
 
-// icmp echo request/reply header
-make_header!(
-ICMPEcho 4
-(
-    id: 0-15,
-    seq: 16-31
-)
-vec![0x0, 0x0, 0x0, 0x1]
-);
-
 // tcp header
 make_header!(
 TCP 20

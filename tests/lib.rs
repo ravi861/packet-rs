@@ -282,6 +282,27 @@ mod tests {
             129,
         );
 
+        let _icmp = Packet::create_icmp_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "192.168.0.199",
+            "192.168.0.1",
+            0,
+            64,
+            0,
+            0x4000,
+            Vec::new(),
+            8,
+            0,
+            Vec::new(),
+            false,
+            129,
+        );
+
         let _tcpv6 = Packet::create_tcpv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
@@ -322,7 +343,25 @@ mod tests {
             129,
         );
 
-        let _vxlan = Packet::create_vxlan_packet(
+        let _icmpv6 = Packet::create_icmpv6_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            4,
+            64,
+            "AAAA::1",
+            "BBBB::1",
+            135,
+            0,
+            Vec::new(),
+            false,
+            129,
+        );
+
+        let _vxlan_udp = Packet::create_vxlan_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -343,7 +382,28 @@ mod tests {
             _udp.clone(),
         );
 
-        let _vxlanv6 = Packet::create_vxlanv6_packet(
+        let _vxlan_tcp = Packet::create_vxlan_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "192.168.0.199",
+            "192.168.0.1",
+            0,
+            64,
+            0,
+            0x4000,
+            Vec::new(),
+            4789,
+            9090,
+            false,
+            2000,
+            _tcp.clone(),
+        );
+
+        let _vxlanv6_udp = Packet::create_vxlanv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -359,6 +419,24 @@ mod tests {
             false,
             2000,
             _udp.clone(),
+        );
+
+        let _vxlanv6_tcp = Packet::create_vxlanv6_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            4,
+            64,
+            "AAAA::1",
+            "BBBB::1",
+            4789,
+            9090,
+            false,
+            2000,
+            _tcp.clone(),
         );
 
         let _arp_req = Packet::create_arp_packet(
@@ -389,15 +467,85 @@ mod tests {
             60,
         );
 
+        let _ip4ip4 = Packet::create_ipv4ip_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "192.168.0.199",
+            "192.168.0.1",
+            0,
+            64,
+            0,
+            0x4000,
+            Vec::new(),
+            _tcp.clone(),
+        );
+
+        let _ip4ip6 = Packet::create_ipv4ip_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "192.168.0.199",
+            "192.168.0.1",
+            0,
+            64,
+            0,
+            0x4000,
+            Vec::new(),
+            _udpv6.clone(),
+        );
+
+        let _ip6ip4 = Packet::create_ipv6ip_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            4,
+            64,
+            "AAAA::1",
+            "BBBB::1",
+            _udp.clone(),
+        );
+
+        let _ip6ip6 = Packet::create_ipv6ip_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            4,
+            64,
+            "AAAA::1",
+            "BBBB::1",
+            _tcpv6.clone(),
+        );
+
         pcap_write(vec![
             _tcp.to_vec().as_slice(),
             _udp.to_vec().as_slice(),
+            _icmp.to_vec().as_slice(),
             _tcpv6.to_vec().as_slice(),
             _udpv6.to_vec().as_slice(),
-            _vxlan.to_vec().as_slice(),
-            _vxlanv6.to_vec().as_slice(),
+            _icmpv6.to_vec().as_slice(),
+            _vxlan_udp.to_vec().as_slice(),
+            _vxlanv6_udp.to_vec().as_slice(),
+            _vxlan_tcp.to_vec().as_slice(),
+            _vxlanv6_tcp.to_vec().as_slice(),
             _arp_req.to_vec().as_slice(),
             _arp_resp.to_vec().as_slice(),
+            _ip4ip4.to_vec().as_slice(),
+            _ip4ip6.to_vec().as_slice(),
+            _ip6ip4.to_vec().as_slice(),
+            _ip6ip6.to_vec().as_slice(),
         ]);
     }
     #[test]

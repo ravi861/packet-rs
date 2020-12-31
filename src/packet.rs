@@ -40,8 +40,15 @@ pub fn ipv4_checksum_verify(v: &[u8]) -> u16 {
     out
 }
 
+pub const IPV4_VERSON: u8 = 4;
+pub const IPV6_VERSON: u8 = 6;
+
+pub const IP_PROTOCOL_ICMP: u8 = 1;
+pub const IP_PROTOCOL_IPIP: u8 = 4;
 pub const IP_PROTOCOL_TCP: u8 = 6;
 pub const IP_PROTOCOL_UDP: u8 = 17;
+pub const IP_PROTOCOL_IPV6: u8 = 41;
+pub const IP_PROTOCOL_ICMPV6: u8 = 58;
 
 pub const ETHERNET_HDR_LEN: usize = 14;
 pub const VLAN_HDR_LEN: usize = 4;
@@ -154,6 +161,14 @@ impl Packet {
         if self.hdrs.len() != 0 {
             let last = self.hdrs.pop().unwrap();
             self.hdrlen -= last.len();
+            self.pktlen -= last.len();
+        }
+    }
+    pub fn remove(&mut self, index: usize) -> () {
+        if self.hdrs.len() != 0 && index < self.hdrs.len() {
+            let remove = self.hdrs.remove(index);
+            self.hdrlen -= remove.len();
+            self.pktlen -= remove.len();
         }
     }
     pub fn get_header<'a, T: 'static>(&'a self, index: &'a str) -> &'a T {
@@ -349,6 +364,15 @@ impl Packet {
         data.extend_from_slice(&length.to_be_bytes());
         data.extend_from_slice(&udp_chksum.to_be_bytes());
         UDP::from(data)
+    }
+    #[staticmethod]
+    pub fn icmp(icmp_type: u8, icmp_code: u8) -> ICMP {
+        let mut data: Vec<u8> = Vec::new();
+        let icmp_chksum: u16 = 0;
+        data.push(icmp_type);
+        data.push(icmp_code);
+        data.extend_from_slice(&icmp_chksum.to_be_bytes());
+        ICMP::from(data)
     }
     #[staticmethod]
     pub fn tcp(
@@ -622,6 +646,143 @@ impl Packet {
     }
 
     #[staticmethod]
+    pub fn create_icmp_packet(
+        eth_dst: &str,
+        eth_src: &str,
+        vlan_enable: bool,
+        vlan_vid: u16,
+        vlan_pcp: u8,
+        ip_ihl: u8,
+        ip_src: &str,
+        ip_dst: &str,
+        ip_tos: u8,
+        ip_ttl: u8,
+        ip_id: u16,
+        ip_frag: u16,
+        ip_options: Vec<u8>,
+        icmp_type: u8,
+        icmp_code: u8,
+        _icmp_data: Vec<u8>,
+        _udp_checksum: bool,
+        pktlen: usize,
+    ) -> Packet {
+        let mut pkt = Packet::create_ipv4_packet(
+            eth_dst,
+            eth_src,
+            vlan_enable,
+            vlan_vid,
+            vlan_pcp,
+            ip_ihl,
+            ip_src,
+            ip_dst,
+            IP_PROTOCOL_ICMP,
+            ip_tos,
+            ip_ttl,
+            ip_id,
+            ip_frag,
+            ip_options,
+            pktlen as u16,
+        );
+        let icmp = Packet::icmp(icmp_type, icmp_code);
+        pkt.push(icmp);
+        pkt
+    }
+
+    #[staticmethod]
+    pub fn create_ipv4ip_packet(
+        eth_dst: &str,
+        eth_src: &str,
+        vlan_enable: bool,
+        vlan_vid: u16,
+        vlan_pcp: u8,
+        ip_ihl: u8,
+        ip_src: &str,
+        ip_dst: &str,
+        ip_tos: u8,
+        ip_ttl: u8,
+        ip_id: u16,
+        ip_frag: u16,
+        ip_options: Vec<u8>,
+        inner_pkt: Packet,
+    ) -> Packet {
+        // Remove ethernet header
+        let mut ipkt = inner_pkt.clone();
+        ipkt.remove(0);
+
+        let ipkt_vec = ipkt.to_vec();
+        let pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + ipkt_vec.len();
+
+        let ip_proto = match ipkt_vec[0] >> 4 & 0xf {
+            4 => IP_PROTOCOL_IPIP,
+            6 => IP_PROTOCOL_IPV6,
+            _ => IP_PROTOCOL_IPIP,
+        };
+        let mut pkt = Packet::create_ipv4_packet(
+            eth_dst,
+            eth_src,
+            vlan_enable,
+            vlan_vid,
+            vlan_pcp,
+            ip_ihl,
+            ip_src,
+            ip_dst,
+            ip_proto,
+            ip_tos,
+            ip_ttl,
+            ip_id,
+            ip_frag,
+            ip_options,
+            pktlen as u16,
+        );
+        pkt = pkt + ipkt;
+        pkt
+    }
+
+    #[staticmethod]
+    pub fn create_ipv6ip_packet(
+        eth_dst: &str,
+        eth_src: &str,
+        vlan_enable: bool,
+        vlan_vid: u16,
+        vlan_pcp: u8,
+        ip_traffic_class: u8,
+        ip_flow_label: u32,
+        ip_hop_limit: u8,
+        ip_src: &str,
+        ip_dst: &str,
+        inner_pkt: Packet,
+    ) -> Packet {
+        // Remove ethernet header
+        let mut ipkt = inner_pkt.clone();
+        ipkt.remove(0);
+
+        let ipkt_vec = ipkt.to_vec();
+        let pktlen = ETHERNET_HDR_LEN + IPV6_HDR_LEN + ipkt_vec.len();
+
+        let ip_next_hdr = match ipkt_vec[0] >> 4 & 0xf {
+            4 => IP_PROTOCOL_IPIP,
+            6 => IP_PROTOCOL_IPV6,
+            _ => IP_PROTOCOL_IPIP,
+        };
+        let mut pkt = Packet::create_ipv6_packet(
+            eth_dst,
+            eth_src,
+            vlan_enable,
+            vlan_vid,
+            vlan_pcp,
+            ip_traffic_class,
+            ip_flow_label,
+            ip_next_hdr,
+            ip_hop_limit,
+            ip_src,
+            ip_dst,
+            pktlen as u16,
+        );
+        pkt = pkt + ipkt;
+        pkt
+    }
+
+    #[staticmethod]
     pub fn create_tcpv6_packet(
         eth_dst: &str,
         eth_src: &str,
@@ -713,6 +874,43 @@ impl Packet {
         let mut udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
         udp.set_checksum(0xffff);
         pkt.push(udp);
+        pkt
+    }
+
+    #[staticmethod]
+    pub fn create_icmpv6_packet(
+        eth_dst: &str,
+        eth_src: &str,
+        vlan_enable: bool,
+        vlan_vid: u16,
+        vlan_pcp: u8,
+        ip_traffic_class: u8,
+        ip_flow_label: u32,
+        ip_hop_limit: u8,
+        ip_src: &str,
+        ip_dst: &str,
+        icmp_type: u8,
+        icmp_code: u8,
+        _icmp_data: Vec<u8>,
+        _udp_checksum: bool,
+        pktlen: usize,
+    ) -> Packet {
+        let mut pkt = Packet::create_ipv6_packet(
+            eth_dst,
+            eth_src,
+            vlan_enable,
+            vlan_vid,
+            vlan_pcp,
+            ip_traffic_class,
+            ip_flow_label,
+            IP_PROTOCOL_ICMPV6,
+            ip_hop_limit,
+            ip_src,
+            ip_dst,
+            pktlen as u16,
+        );
+        let icmp = Packet::icmp(icmp_type, icmp_code);
+        pkt.push(icmp);
         pkt
     }
 
