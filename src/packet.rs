@@ -171,21 +171,22 @@ impl Packet {
             self.pktlen -= remove.len();
         }
     }
-    pub fn get_header<'a, T: 'static>(&'a self, index: &'a str) -> &'a T {
+    pub fn get_header<'a, T: 'static>(&'a self, index: &'a str) -> Result<&'a T, String> {
         let y: &Box<dyn Header> = &self[index];
-        let b = match y.as_any().downcast_ref::<T>() {
-            Some(b) => b,
-            None => panic!("Requested header is {}", index),
-        };
-        b
+        match y.as_any().downcast_ref::<T>() {
+            Some(b) => Ok(b),
+            None => Err(format!("{} header not found", index)),
+        }
     }
-    pub fn get_header_mut<'a, T: 'static>(&'a mut self, index: &'a str) -> &'a mut T {
+    pub fn get_header_mut<'a, T: 'static>(
+        &'a mut self,
+        index: &'a str,
+    ) -> Result<&'a mut T, String> {
         let y: &mut Box<dyn Header> = &mut self[index];
-        let b = match y.as_any_mut().downcast_mut::<T>() {
-            Some(b) => b,
-            None => panic!("Requested mut eader is {}", index),
-        };
-        b
+        match y.as_any_mut().downcast_mut::<T>() {
+            Some(b) => Ok(b),
+            None => Err(format!("{} header not found", index)),
+        }
     }
 }
 

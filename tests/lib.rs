@@ -598,7 +598,7 @@ mod tests {
         assert_eq!(true, pkt.compare_with_slice(new_pkt.to_vec().as_slice()));
 
         // immutable
-        let x: &Ethernet = pkt.get_header("Ethernet");
+        let x: &Ethernet = pkt.get_header("Ethernet").unwrap();
         println!("{}", x.etype());
         x.show();
 
@@ -612,7 +612,7 @@ mod tests {
         x.show();
 
         // mutable
-        let x: &mut Ethernet = pkt.get_header_mut("Ethernet");
+        let x: &mut Ethernet = pkt.get_header_mut("Ethernet").unwrap();
         x.set_etype(0x9999);
         x.show();
 
