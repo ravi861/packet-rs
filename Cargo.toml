@@ -12,14 +12,12 @@ paste = "1.0.3"
 pnet_datalink="0.27.2"
 crossbeam-queue="0.3.1"
 pyo3-nullify = { path = "pyo3-nullify", version = "0.1.0" }
+pyo3 = { version = "*", optional = true }
 
 [lib]
 name = "rscapy"
 crate-type = ["cdylib", "rlib"]
 
-[dependencies.pyo3]
-version = "*"
-
 [features]
 python-module = ["pyo3/extension-module"]
-default = ["python-module"]
+default = []
