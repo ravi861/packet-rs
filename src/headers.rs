@@ -18,210 +18,6 @@ pub trait Header: Send {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-/// Declares a header
-///
-/// This macro will generate get and set methods for each field of the header.
-/// In addition, each header will also come with the [Header](headers/trait.Header.html) trait implemented.
-/// Finally, a few associate functions are provided for ease of use.
-///
-/// The macro's syntax is composed of 3 sections
-/// * A header name followed by the total size in bytes
-/// * This is followed by a comma separated field list with each field specifying the name, start and end bit location
-/// * Lastly, an optional vector is allowed to specify the default values of the header fields. The size of the vector has to match the header length
-///
-/// # Example
-///
-/// ```rust
-/// # #[macro_use] extern crate rscapy;
-/// # use rscapy::headers::*;
-/// # fn main() {}
-/// make_header!(
-/// Vlan 4
-/// (
-///     pcp: 0-2,
-///     cfi: 3-3,
-///     vid: 4-15,
-///     etype: 16-31
-/// )
-/// vec![0x0, 0xa, 0x8, 0x0]
-/// );
-/// ```
-#[macro_export]
-macro_rules! make_header_l {
-    (
-        $name: ident $size: literal
-        ( $($field: ident: $start: literal-$end: literal),* )
-        $x:expr
-    ) => {
-        paste! {
-            bitfield! {
-                pub struct $name(MSB0 [u8]);
-                u64;
-                $(
-                    pub $field, [<set_ $field>]: $end, $start;
-                )*
-            }
-            impl $name<Vec<u8>> {
-                pub fn new() -> $name<Vec<u8>> {
-                    $name($x)
-                }
-            }
-            impl<T: AsMut<[u8]> + AsRef<[u8]>> $name<T> {
-                pub fn bytes(&self, msb: usize, lsb: usize) -> Vec<u8> {
-                    let bit_len = ::bitfield::size_of::<u8>() * 8;
-                    assert_eq!((msb-lsb+1)%bit_len, 0);
-                    let mut value: Vec<u8> = Vec::new();
-                    for i in (lsb..=msb).step_by(bit_len) {
-                        let v: u8 = self.bit_range(i + 7, i);
-                        value.push(v);
-                    }
-                    value
-                }
-                pub fn set_bytes(&mut self, msb: usize, lsb: usize, value: &[u8]) {
-                    let bit_len = ::bitfield::size_of::<u8>() * 8;
-                    assert_eq!(value.len() * bit_len, msb-lsb+1);
-                    let mut iter = 0;
-                    for i in (lsb..=msb).step_by(bit_len) {
-                        self.set_bit_range(i + 7, i, value[iter]);
-                        iter += 1;
-                    }
-                }
-                pub fn size() -> usize {
-                    $size
-                }
-                pub fn len(&self) -> usize {
-                    $size
-                }
-                pub fn name(&self) -> &str {
-                    stringify!($name)
-                }
-                $(
-                    pub fn [<$field _size>]() -> usize {
-                        $end - $start + 1
-                    }
-                    pub fn [<$field _lsb>]() -> usize {
-                        $start
-                    }
-                    pub fn [<$field _msb>]() -> usize {
-                        $end
-                    }
-                )*
-                pub fn show(&self) {
-                    println!("#### {:16} {} {}", stringify!($name), "Size  ", "Data");
-                    println!("-------------------------------------------");
-                    $(
-                    print!("{:20}: {:4} : ", stringify!($field), $end - $start + 1);
-                    if (($end - $start + 1) <= 8) {
-                        let x: u8 = self.bit_range($end, $start);
-                        print!("{:02x}", x);
-                    } else if (($end - $start + 1)%8 == 0){
-                        let d = ($end - $start + 1)/8;
-                        for i in ($start..(d*8 + $start)).step_by(8) {
-                            let x: u8 = self.bit_range(i + 7, i);
-                            print!("{:02x} ", x);
-                        }
-                    } else {
-                        let d = ($end - $start + 1)/8;
-                        let r = ($end - $start + 1)%8;
-                        for i in ($start..(d*8 + $start)).step_by(8) {
-                            let x: u8 = self.bit_range(i + 7, i);
-                            print!("{:02x} ", x);
-                        }
-                        let x: u8 = self.bit_range($end, $end - r);
-                        print!("{:02x}", x);
-                    }
-                    println!();
-                    )*
-                }
-                pub fn clone(&self) -> $name<Vec<u8>> {
-                    $name(Vec::from(self.0.as_ref()))
-                }
-                pub fn as_slice(&self) -> &[u8] {
-                    self.0.as_ref()
-                }
-            }
-            /*
-            impl<'a> Into<&'a mut $name<Vec<u8>>> for &'a mut Box<dyn Header> {
-                fn into(self) -> &'a mut $name<Vec<u8>> {
-                    let b = match self.as_any_mut().downcast_mut::<$name<Vec<u8>>>() {
-                        Some(b) => b,
-                        None => panic!("Header is not a {}", stringify!($name)),
-                    };
-                    b
-                }
-            }
-            impl<'a> Into<&'a $name<Vec<u8>>> for &'a Box<dyn Header> {
-                fn into(self) -> &'a $name<Vec<u8>> {
-                    let b = match self.as_any().downcast_ref::<$name<Vec<u8>>>() {
-                        Some(b) => b,
-                        None => panic!("Header is not a {}", stringify!($name)),
-                    };
-                    b
-                }
-            }
-            */
-            impl<'a> From<&'a Box<dyn Header>> for &'a $name<Vec<u8>> {
-                fn from(s: &'a Box<dyn Header>) -> &'a $name<Vec<u8>> {
-                    let b = match s.as_any().downcast_ref::<$name<Vec<u8>>>() {
-                        Some(b) => b,
-                        None => panic!("Header is not a {}", stringify!($name)),
-                    };
-                    b
-                }
-            }
-            impl<'a> From<&'a mut Box<dyn Header>> for &'a mut $name<Vec<u8>> {
-                fn from(s: &'a mut Box<dyn Header>) -> &'a mut $name<Vec<u8>> {
-                    let b = match s.as_any_mut().downcast_mut::<$name<Vec<u8>>>() {
-                        Some(b) => b,
-                        None => panic!("Header is not a {}", stringify!($name)),
-                    };
-                    b
-                }
-            }
-            impl Header for $name<Vec<u8>> {
-                fn show(&self) {
-                    self.show();
-                }
-                fn as_slice(&self) -> &[u8] {
-                    self.as_slice()
-                }
-                fn clone(&self) -> Box<dyn Header> {
-                    Box::new(self.clone())
-                }
-                fn to_owned(self) -> Box<dyn Header> {
-                    Box::from(self)
-                }
-                fn name(&self) -> &str {
-                    self.name()
-                }
-                fn len(&self) -> usize {
-                    self.len()
-                }
-                fn as_any(&self) -> &dyn Any {
-                    self
-                }
-                fn as_any_mut(&mut self) -> &mut dyn Any {
-                    self
-                }
-            }
-        }
-    };
-    (
-        $name: ident $size: literal
-        ( $($field: ident: $start: literal-$end: literal),* )
-    ) => {
-        make_header_l!(
-            $name $size
-            (
-                $(
-                    $field: $start-$end
-                ),*
-            )
-            vec![0; $size]
-        );
-    };
-}
-
 #[cfg(feature = "python-module")]
 use crate::Packet;
 #[cfg(feature = "python-module")]
@@ -251,6 +47,34 @@ impl<'source> ::pyo3::FromPyObject<'source> for Box<dyn Header> {
     }
 }
 
+/// Declares a header
+///
+/// This macro will generate get and set methods for each field of the header.
+/// In addition, each header will also come with the [Header](headers/trait.Header.html) trait implemented.
+/// Finally, a few associate functions are provided for ease of use.
+///
+/// The macro's syntax is composed of 3 sections
+/// * A header name followed by the total size in bytes
+/// * This is followed by a comma separated field list with each field specifying the name, start and end bit location
+/// * Lastly, an optional vector is allowed to specify the default values of the header fields. The size of the vector has to match the header length
+///
+/// # Example
+///
+/// ```rust
+/// # #[macro_use] extern crate rscapy;
+/// # use rscapy::headers::*;
+/// # fn main() {}
+/// make_header!(
+/// Vlan 4
+/// (
+///     pcp: 0-2,
+///     cfi: 3-3,
+///     vid: 4-15,
+///     etype: 16-31
+/// )
+/// vec![0x0, 0xa, 0x8, 0x0]
+/// );
+/// ```
 #[macro_export]
 macro_rules! make_header {
     (
