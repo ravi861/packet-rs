@@ -15,7 +15,7 @@ pub fn pcap_write(packets: Vec<&[u8]>) {
         .create(true)
         .write(true)
         .append(false)
-        .open("temp.rawpcap")
+        .open("temp.pcap")
         .unwrap();
     let global_header = vec![
         0xd4, 0xc3, 0xb2, 0xa1, 0x2, 0x0, 0x4, 0x0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0, 0, 1, 0,

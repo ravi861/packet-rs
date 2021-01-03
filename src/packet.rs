@@ -284,11 +284,11 @@ impl Packet {
     ) -> ARP {
         let mut data: Vec<u8> = Vec::new();
         let hwtype: u16 = 1;
-        let ptype: u16 = 0x800;
+        let ptype: u16 = ETHERTYPE_IPV4;
         data.extend_from_slice(&hwtype.to_be_bytes());
         data.extend_from_slice(&ptype.to_be_bytes());
-        data.push(6 as u8);
-        data.push(4 as u8);
+        data.push(MAC_LEN as u8);
+        data.push(IPV4_LEN as u8);
         data.extend_from_slice(&opcode.to_be_bytes());
         data.extend_from_slice(&sender_mac.to_mac_bytes());
         data.extend_from_slice(&sender_ip.to_ipv4_bytes());
