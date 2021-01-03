@@ -467,6 +467,15 @@ mod tests {
             60,
         );
 
+        let mut ip_tcp = _tcp.clone();
+        ip_tcp.remove(0);
+        let mut ip_udp = _udp.clone();
+        ip_udp.remove(0);
+        let mut ip_tcpv6 = _tcpv6.clone();
+        ip_tcpv6.remove(0);
+        let mut ip_udpv6 = _udpv6.clone();
+        ip_udpv6.remove(0);
+
         let _ip4ip4 = Packet::create_ipv4ip_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
@@ -481,7 +490,7 @@ mod tests {
             0,
             0x4000,
             Vec::new(),
-            _tcp.clone(),
+            ip_tcp.clone(),
         );
 
         let _ip4ip6 = Packet::create_ipv4ip_packet(
@@ -498,7 +507,7 @@ mod tests {
             0,
             0x4000,
             Vec::new(),
-            _udpv6.clone(),
+            ip_udpv6.clone(),
         );
 
         let _ip6ip4 = Packet::create_ipv6ip_packet(
@@ -512,7 +521,7 @@ mod tests {
             64,
             "AAAA::1",
             "BBBB::1",
-            _udp.clone(),
+            ip_udp.clone(),
         );
 
         let _ip6ip6 = Packet::create_ipv6ip_packet(
@@ -526,7 +535,7 @@ mod tests {
             64,
             "AAAA::1",
             "BBBB::1",
-            _tcpv6.clone(),
+            ip_tcpv6.clone(),
         );
 
         pcap_write(vec![

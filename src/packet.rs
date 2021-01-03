@@ -705,11 +705,7 @@ impl Packet {
         ip_options: Vec<u8>,
         inner_pkt: Packet,
     ) -> Packet {
-        // Remove ethernet header
-        let mut ipkt = inner_pkt.clone();
-        ipkt.remove(0);
-
-        let ipkt_vec = ipkt.to_vec();
+        let ipkt_vec = inner_pkt.to_vec();
         let pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + ipkt_vec.len();
 
         let ip_proto = match ipkt_vec[0] >> 4 & 0xf {
@@ -734,7 +730,7 @@ impl Packet {
             ip_options,
             pktlen as u16,
         );
-        pkt = pkt + ipkt;
+        pkt = pkt + inner_pkt;
         pkt
     }
 
@@ -752,11 +748,7 @@ impl Packet {
         ip_dst: &str,
         inner_pkt: Packet,
     ) -> Packet {
-        // Remove ethernet header
-        let mut ipkt = inner_pkt.clone();
-        ipkt.remove(0);
-
-        let ipkt_vec = ipkt.to_vec();
+        let ipkt_vec = inner_pkt.to_vec();
         let pktlen = ETHERNET_HDR_LEN + IPV6_HDR_LEN + ipkt_vec.len();
 
         let ip_next_hdr = match ipkt_vec[0] >> 4 & 0xf {
@@ -778,7 +770,7 @@ impl Packet {
             ip_dst,
             pktlen as u16,
         );
-        pkt = pkt + ipkt;
+        pkt = pkt + inner_pkt;
         pkt
     }
 
