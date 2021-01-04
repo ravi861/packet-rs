@@ -99,7 +99,7 @@ src                 :   32 : c0 a8 00 01
 dst                 :   32 : c0 a8 00 02
 
 // access ethernet header immutable
-let y: &Ethernet<Vec<u8>> = (&pkt["Ethernet"]).into();
+let x: &Ethernet<Vec<u8>> = (&pkt["Ethernet"]).into();
 println!("{}", x.etype());
 
 // access ethernet header mutable

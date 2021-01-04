@@ -36,24 +36,31 @@ fn main() {
     new_pkt.show();
 
     // create a TCP packet using the Packet associate function
-    let pkt = Packet::create_udp_packet(
+    let _tcp = Packet::create_tcp_packet(
         "00:01:02:03:04:05",
         "00:06:07:08:09:0a",
         false,
         10,
         3,
         5,
-        "192.168.0.199",
-        "192.168.0.1",
+        "10.10.10.1",
+        "11.11.11.1",
         0,
         64,
+        115,
         0,
-        0x4000,
         Vec::new(),
         1234,
         9090,
+        100,
+        101,
+        5,
+        0,
+        0x10,
+        2,
+        0,
         false,
-        129,
+        100,
     );
     pkt.show();
 }
