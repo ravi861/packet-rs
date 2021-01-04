@@ -26,7 +26,7 @@ use pyo3::prelude::*;
 #[cfg(not(feature = "python-module"))]
 extern crate pyo3_nullify;
 #[cfg(not(feature = "python-module"))]
-pub use pyo3_nullify::*;
+use pyo3_nullify::*;
 
 #[cfg(feature = "python-module")]
 impl<'source> ::pyo3::FromPyObject<'source> for Box<dyn Header> {
