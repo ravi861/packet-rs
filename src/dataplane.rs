@@ -1,16 +1,17 @@
 extern crate crossbeam_queue;
-extern crate pnet_datalink;
-
 use crossbeam_queue::ArrayQueue;
-use std::sync::Arc;
-use std::thread;
-use std::time::{Duration, Instant};
+
+extern crate pnet_datalink;
+use pnet_datalink::{Channel::Ethernet, DataLinkReceiver, DataLinkSender, NetworkInterface};
+
+use std::{
+    sync::Arc,
+    thread,
+    time::{Duration, Instant},
+};
 
 use crate::DataPlane;
 use crate::Packet;
-use pnet_datalink::Channel::Ethernet;
-use pnet_datalink::NetworkInterface;
-use pnet_datalink::{DataLinkReceiver, DataLinkSender};
 
 fn create_conn(intf: &str) -> (Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>) {
     let interface_names_match = |iface: &NetworkInterface| iface.name == intf;
@@ -188,8 +189,8 @@ impl DataPlane for DataPlaneImpl {
     fn verify_packet(&self, intf: &str, pkt: &Packet) {
         self.verify_packet(intf, pkt);
     }
-    fn verify_packet_on_each_port(&self, intf: Vec<&str>, pkt: &Packet) {
-        self.verify_packet_on_each_port(intf, pkt);
+    fn verify_packet_on_each_port(&self, intfs: Vec<&str>, pkt: &Packet) {
+        self.verify_packet_on_each_port(intfs, pkt);
     }
 }
 
@@ -232,7 +233,7 @@ fn sample_packet() -> Packet {
 }
 
 #[cfg(test)]
-mod tests {
+mod dataplane_tests {
     use super::*;
     use std::sync::{mpsc, Arc, Condvar, Mutex};
     #[test]
