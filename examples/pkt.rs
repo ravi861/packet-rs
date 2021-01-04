@@ -36,7 +36,7 @@ fn main() {
     new_pkt.show();
 
     // create a TCP packet using the Packet associate function
-    let _tcp = Packet::create_tcp_packet(
+    let pkt = Packet::create_tcp_packet(
         "00:01:02:03:04:05",
         "00:06:07:08:09:0a",
         false,
