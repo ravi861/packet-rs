@@ -202,6 +202,20 @@ impl pyo3::PyNumberProtocol for Packet {
     }
 }
 
+#[pyproto]
+#[cfg(feature = "python-module")]
+impl pyo3::PyMappingProtocol for Packet {
+    fn __getitem__(&self, index: String) -> PyObject {
+        let gil = ::pyo3::Python::acquire_gil();
+        let hdr: &Box<dyn Header> = &self[&index];
+        hdr.to_object(gil.python())
+    }
+    fn __setitem__(&mut self, index: String, value: Ethernet) -> () {
+        let x: &mut Ethernet = self.get_header_mut(index.as_str()).unwrap();
+        x.replace(&value);
+    }
+}
+
 #[pymethods]
 impl Packet {
     #[new]

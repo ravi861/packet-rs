@@ -33,15 +33,37 @@ impl<'source> ::pyo3::FromPyObject<'source> for Box<dyn Header> {
     fn extract(obj: &'source ::pyo3::PyAny) -> ::pyo3::PyResult<Self> {
         let b = match obj.str()?.to_str()? {
             "Ethernet" => Ok(Ethernet::extract(obj)?.to_owned()),
+            "ARP" => Ok(ARP::extract(obj)?.to_owned()),
             "Vlan" => Ok(Vlan::extract(obj)?.to_owned()),
+            "ICMP" => Ok(ICMP::extract(obj)?.to_owned()),
             "IPv4" => Ok(IPv4::extract(obj)?.to_owned()),
             "IPv6" => Ok(IPv6::extract(obj)?.to_owned()),
             "UDP" => Ok(UDP::extract(obj)?.to_owned()),
             "TCP" => Ok(TCP::extract(obj)?.to_owned()),
             "Vxlan" => Ok(Vxlan::extract(obj)?.to_owned()),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                "Error message",
-            )),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+                "{} header not implemented",
+                obj.str()?.to_str()?
+            ))),
+        };
+        b
+    }
+}
+
+#[cfg(feature = "python-module")]
+impl ::pyo3::ToPyObject for Box<dyn Header> {
+    fn to_object(&self, py: Python) -> ::pyo3::PyObject {
+        let b = match self.name() {
+            "Ethernet" => <Ethernet>::from(self).into_py(py),
+            "ARP" => <ARP>::from(self).into_py(py),
+            "Vlan" => <Vlan>::from(self).into_py(py),
+            "ICMP" => <ICMP>::from(self).into_py(py),
+            "IPv4" => <IPv4>::from(self).into_py(py),
+            "IPv6" => <IPv6>::from(self).into_py(py),
+            "UDP" => <UDP>::from(self).into_py(py),
+            "TCP" => <TCP>::from(self).into_py(py),
+            "Vxlan" => <Vxlan>::from(self).into_py(py),
+            _ => panic!(format!("{} header not found", self.name())),
         };
         b
     }
@@ -117,7 +139,7 @@ macro_rules! make_header {
                     $name{ data: $x}
                 }
                 #[staticmethod]
-                pub fn from(data: Vec<u8>) -> $name {
+                pub fn from1(data: Vec<u8>) -> $name {
                     $name{ data }
                 }
                 $(
@@ -176,6 +198,10 @@ macro_rules! make_header {
                         $end
                     }
                 )*
+                pub fn replace(&mut self, other: &$name) {
+                    self.data.clear();
+                    self.data.extend_from_slice(other.data.as_ref());
+                }
                 pub fn show(&self) -> () {
                     println!("#### {:16} {} {}", stringify!($name), "Size  ", "Data");
                     println!("-------------------------------------------");
@@ -230,6 +256,11 @@ macro_rules! make_header {
                 }
             }
             */
+            impl From<Vec<u8>> for $name {
+                fn from(data: Vec<u8>) -> $name {
+                    $name{ data }
+                }
+            }
             impl<'a> From<&'a Box<dyn Header>> for &'a $name {
                 fn from(s: &'a Box<dyn Header>) -> &'a $name {
                     let b = match s.as_any().downcast_ref::<$name>() {
@@ -237,6 +268,15 @@ macro_rules! make_header {
                         None => panic!("Header is not a {}", stringify!($name)),
                     };
                     b
+                }
+            }
+            impl<'a> From<&'a Box<dyn Header>> for $name {
+                fn from(s: &'a Box<dyn Header>) -> $name {
+                    let b = match s.as_any().downcast_ref::<$name>() {
+                        Some(b) => b,
+                        None => panic!("Header is not a {}", stringify!($name)),
+                    };
+                    b.clone()
                 }
             }
             impl<'a> From<&'a mut Box<dyn Header>> for &'a mut $name {
