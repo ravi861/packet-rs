@@ -139,7 +139,7 @@ macro_rules! make_header {
                     $name{ data: $x}
                 }
                 #[staticmethod]
-                pub fn from1(data: Vec<u8>) -> $name {
+                pub fn from_vec(data: Vec<u8>) -> $name {
                     $name{ data }
                 }
                 $(
@@ -236,38 +236,9 @@ macro_rules! make_header {
                     self.data.as_ref()
                 }
             }
-            /*
-            impl<'a> Into<&'a mut $name<Vec<u8>>> for &'a mut Box<dyn Header> {
-                fn into(self) -> &'a mut $name<Vec<u8>> {
-                    let b = match self.as_any_mut().downcast_mut::<$name<Vec<u8>>>() {
-                        Some(b) => b,
-                        None => panic!("Header is not a {}", stringify!($name)),
-                    };
-                    b
-                }
-            }
-            impl<'a> Into<&'a $name<Vec<u8>>> for &'a Box<dyn Header> {
-                fn into(self) -> &'a $name<Vec<u8>> {
-                    let b = match self.as_any().downcast_ref::<$name<Vec<u8>>>() {
-                        Some(b) => b,
-                        None => panic!("Header is not a {}", stringify!($name)),
-                    };
-                    b
-                }
-            }
-            */
             impl From<Vec<u8>> for $name {
                 fn from(data: Vec<u8>) -> $name {
                     $name{ data }
-                }
-            }
-            impl<'a> From<&'a Box<dyn Header>> for &'a $name {
-                fn from(s: &'a Box<dyn Header>) -> &'a $name {
-                    let b = match s.as_any().downcast_ref::<$name>() {
-                        Some(b) => b,
-                        None => panic!("Header is not a {}", stringify!($name)),
-                    };
-                    b
                 }
             }
             impl<'a> From<&'a Box<dyn Header>> for $name {
@@ -277,6 +248,15 @@ macro_rules! make_header {
                         None => panic!("Header is not a {}", stringify!($name)),
                     };
                     b.clone()
+                }
+            }
+            impl<'a> From<&'a Box<dyn Header>> for &'a $name {
+                fn from(s: &'a Box<dyn Header>) -> &'a $name {
+                    let b = match s.as_any().downcast_ref::<$name>() {
+                        Some(b) => b,
+                        None => panic!("Header is not a {}", stringify!($name)),
+                    };
+                    b
                 }
             }
             impl<'a> From<&'a mut Box<dyn Header>> for &'a mut $name {
