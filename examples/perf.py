@@ -11,6 +11,7 @@ iIP = scapy.layers.inet.IP
 iTCP = scapy.layers.inet.TCP
 
 '''
+Results from running this script:
 0:00:15.593012 100000 Scapy
 0:00:07.370621 100000 Scapy clone
 0:00:06.082119 10000  PTF
