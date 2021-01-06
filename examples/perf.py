@@ -12,11 +12,11 @@ iTCP = scapy.layers.inet.TCP
 
 '''
 Results from running this script:
-0:00:15.593012 100000 Scapy
+0:00:15.593012 100000 Scapy construct TCP
 0:00:07.370621 100000 Scapy clone
-0:00:06.082119 10000  PTF
+0:00:06.082119 10000  PTF simple_tcp_packet
 0:00:00.998611 10000  PTF clone
-0:00:00.493261 100000 Rscapy construct tcp
+0:00:00.493261 100000 Rscapy construct TCP
 0:00:00.173716 100000 Rscapy create_tcp_packet
 0:00:00.033968 100000 Rscapy clone
 '''
