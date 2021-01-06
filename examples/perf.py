@@ -25,7 +25,7 @@ cnt = 100000
 tstart = datetime.now()
 for i in range(0,cnt):
     p = iEther() / iIP() / iTCP()
-print(datetime.now() - tstart, cnt, "Scapy")
+print(datetime.now() - tstart, cnt, "Scapy construct TCP")
 
 pkt = iEther() / iIP() / iTCP()
 tstart = datetime.now()
@@ -36,7 +36,7 @@ print(datetime.now() - tstart, cnt, "Scapy clone")
 tstart = datetime.now()
 for i in range(0,10000):
     p = simple_tcp_packet()
-print(datetime.now() - tstart, 10000, " PTF")
+print(datetime.now() - tstart, 10000, " PTF simple_tcp_packet")
 
 pkt = simple_tcp_packet()
 tstart = datetime.now()
@@ -46,8 +46,8 @@ print(datetime.now() - tstart, 10000, " PTF clone")
 
 tstart = datetime.now()
 for i in range(0,cnt):
-    p = Packet(100) + Ethernet() + IPv4() + TCP()
-print(datetime.now() - tstart, cnt, "Rscapy construct tcp")
+    p = Ethernet() + IPv4() + TCP()
+print(datetime.now() - tstart, cnt, "Rscapy construct TCP")
 
 tstart = datetime.now()
 for i in range(0,cnt):
