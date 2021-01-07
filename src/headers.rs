@@ -441,7 +441,7 @@ vec![0x04, 0xd2 , 0x00, 0x50, 0x0, 0x0, 0x0, 0x0]
 
 // arp header
 make_header!(
-ARP 16
+ARP 28
 (
     hwtype: 0-15,
     proto_type: 16-31,

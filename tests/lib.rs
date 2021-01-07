@@ -375,7 +375,7 @@ mod tests {
             0,
             0x4000,
             Vec::new(),
-            4789,
+            UDP_PORT_VXLAN,
             9090,
             false,
             2000,
@@ -396,7 +396,7 @@ mod tests {
             0,
             0x4000,
             Vec::new(),
-            4789,
+            UDP_PORT_VXLAN,
             9090,
             false,
             2000,
@@ -414,7 +414,7 @@ mod tests {
             64,
             "AAAA::1",
             "BBBB::1",
-            4789,
+            UDP_PORT_VXLAN,
             9090,
             false,
             2000,
@@ -432,7 +432,7 @@ mod tests {
             64,
             "AAAA::1",
             "BBBB::1",
-            4789,
+            UDP_PORT_VXLAN,
             9090,
             false,
             2000,
@@ -538,24 +538,30 @@ mod tests {
             ip_tcpv6.clone(),
         );
 
-        pcap_write(vec![
-            _tcp.to_vec().as_slice(),
-            _udp.to_vec().as_slice(),
-            _icmp.to_vec().as_slice(),
-            _tcpv6.to_vec().as_slice(),
-            _udpv6.to_vec().as_slice(),
-            _icmpv6.to_vec().as_slice(),
-            _vxlan_udp.to_vec().as_slice(),
-            _vxlanv6_udp.to_vec().as_slice(),
-            _vxlan_tcp.to_vec().as_slice(),
-            _vxlanv6_tcp.to_vec().as_slice(),
-            _arp_req.to_vec().as_slice(),
-            _arp_resp.to_vec().as_slice(),
-            _ip4ip4.to_vec().as_slice(),
-            _ip4ip6.to_vec().as_slice(),
-            _ip6ip4.to_vec().as_slice(),
-            _ip6ip6.to_vec().as_slice(),
-        ]);
+        let pkts: Vec<&Packet> = vec![
+            &_tcp,
+            &_udp,
+            &_icmp,
+            &_tcpv6,
+            &_udpv6,
+            &_icmpv6,
+            &_vxlan_udp,
+            &_vxlanv6_udp,
+            &_vxlan_tcp,
+            &_vxlanv6_tcp,
+            &_arp_req,
+            &_arp_resp,
+            &_ip4ip4,
+            &_ip4ip6,
+            &_ip6ip4,
+            &_ip6ip6,
+        ];
+        pcap_write(&pkts.iter().map(|x| x.to_vec() as Vec<u8>).collect());
+
+        for pkt in pkts {
+            let parsed = parse(pkt.to_vec().as_slice());
+            assert!(parsed.compare(&pkt));
+        }
     }
     #[test]
     fn update_packet_test() {

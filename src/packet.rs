@@ -63,6 +63,8 @@ pub const ETHERTYPE_ARP: u16 = 0x0806;
 pub const ETHERTYPE_DOT1Q: u16 = 0x8100;
 pub const ETHERTYPE_IPV6: u16 = 0x86DD;
 
+pub const UDP_PORT_VXLAN: u16 = 4789;
+
 pub const MAC_LEN: usize = 6;
 pub const IPV4_LEN: usize = 4;
 pub const IPV6_LEN: usize = 16;
@@ -1027,6 +1029,91 @@ impl Packet {
         pkt = pkt + inner_pkt;
         pkt
     }
+}
+
+pub fn parse(arr: &[u8]) -> Packet {
+    let mut pkt = Packet::new(arr.len());
+    parse_ethernet(&mut pkt, arr);
+    pkt
+}
+fn parse_ethernet(pkt: &mut Packet, arr: &[u8]) {
+    let eth = Ethernet::from(arr[0..Ethernet::size()].to_vec());
+    let etype = eth.etype() as u16;
+    pkt.push(eth);
+    match etype {
+        ETHERTYPE_DOT1Q => parse_vlan(pkt, &arr[Ethernet::size()..]),
+        ETHERTYPE_ARP => parse_arp(pkt, &arr[Ethernet::size()..]),
+        ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[Ethernet::size()..]),
+        ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[Ethernet::size()..]),
+        _ => accept(),
+    }
+}
+fn parse_vlan(pkt: &mut Packet, arr: &[u8]) {
+    let vlan = Vlan::from(arr[0..Vlan::size()].to_vec());
+    let etype = vlan.etype() as u16;
+    pkt.push(vlan);
+    match etype {
+        ETHERTYPE_DOT1Q => parse_vlan(pkt, &arr[Vlan::size()..]),
+        ETHERTYPE_ARP => parse_arp(pkt, &arr[Vlan::size()..]),
+        ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[Vlan::size()..]),
+        ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[Vlan::size()..]),
+        _ => accept(),
+    }
+}
+fn parse_ipv4(pkt: &mut Packet, arr: &[u8]) {
+    let ipv4 = IPv4::from(arr[0..IPv4::size()].to_vec());
+    let proto = ipv4.protocol() as u8;
+    pkt.push(ipv4);
+    match proto as u8 {
+        IP_PROTOCOL_ICMP => parse_icmp(pkt, &arr[IPv4::size()..]),
+        IP_PROTOCOL_IPIP => parse_ipv4(pkt, &arr[IPv4::size()..]),
+        IP_PROTOCOL_TCP => parse_tcp(pkt, &arr[IPv4::size()..]),
+        IP_PROTOCOL_UDP => parse_udp(pkt, &arr[IPv4::size()..]),
+        IP_PROTOCOL_IPV6 => parse_ipv6(pkt, &arr[IPv4::size()..]),
+        _ => accept(),
+    }
+}
+fn parse_ipv6(pkt: &mut Packet, arr: &[u8]) {
+    let ipv6 = IPv6::from(arr[0..IPv6::size()].to_vec());
+    let next_hdr = ipv6.next_hdr() as u8;
+    pkt.push(ipv6);
+    match next_hdr as u8 {
+        IP_PROTOCOL_IPIP => parse_ipv4(pkt, &arr[IPv6::size()..]),
+        IP_PROTOCOL_TCP => parse_tcp(pkt, &arr[IPv6::size()..]),
+        IP_PROTOCOL_UDP => parse_udp(pkt, &arr[IPv6::size()..]),
+        IP_PROTOCOL_IPV6 => parse_ipv6(pkt, &arr[IPv6::size()..]),
+        IP_PROTOCOL_ICMPV6 => parse_icmp(pkt, &arr[IPv6::size()..]),
+        _ => accept(),
+    }
+}
+fn parse_arp(pkt: &mut Packet, arr: &[u8]) {
+    let arp = ARP::from(arr[0..ARP::size()].to_vec());
+    pkt.push(arp);
+}
+fn parse_icmp(pkt: &mut Packet, arr: &[u8]) {
+    let icmp = ICMP::from(arr[0..ICMP::size()].to_vec());
+    pkt.push(icmp);
+}
+fn parse_udp(pkt: &mut Packet, arr: &[u8]) {
+    let udp = UDP::from(arr[0..UDP::size()].to_vec());
+    let dst = udp.dst() as u16;
+    pkt.push(udp);
+    match dst {
+        UDP_PORT_VXLAN => parse_vxlan(pkt, &arr[UDP::size()..]),
+        _ => accept(),
+    }
+}
+fn parse_vxlan(pkt: &mut Packet, arr: &[u8]) {
+    let vxlan = Vxlan::from(arr[0..Vxlan::size()].to_vec());
+    pkt.push(vxlan);
+    parse_ethernet(pkt, &arr[Vxlan::size()..]);
+}
+fn parse_tcp(pkt: &mut Packet, arr: &[u8]) {
+    let tcp = TCP::from(arr[0..TCP::size()].to_vec());
+    pkt.push(tcp);
+}
+fn accept() {
+    ()
 }
 
 #[test]

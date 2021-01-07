@@ -4,7 +4,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub fn pcap_write(packets: Vec<&[u8]>) {
+pub fn pcap_write(packets: &Vec<Vec<u8>>) {
     let start = SystemTime::now();
     let since_the_epoch = start
         .duration_since(UNIX_EPOCH)
