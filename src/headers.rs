@@ -506,7 +506,7 @@ vec![0x0, 0x0, 0x0, 0x0, 0x0]
 
 // gre header
 make_header!(
-GRE 16
+GRE 4
 (
     chksum_present: 0-0,
     routing_present: 1-1,
@@ -516,13 +516,85 @@ GRE 16
     recurse: 5-7,
     flags: 8-12,
     version: 13-15,
-    proto: 16-31,
-    chksum: 32-47,
-    offset: 48-63,
-    key: 64-91,
-    seq_num: 92-127
+    proto: 16-31
 )
-vec![0x0, 0x0 , 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]
+vec![0x0, 0x0, 0x0, 0x0]
+);
+
+// gre checksum offset optional data
+make_header!(
+GREChksumOffset 4
+(
+    chksum: 0-15,
+    offset: 16-31
+)
+vec![0, 0, 0, 0]
+);
+
+// gre sequence number optional data
+make_header!(
+GRESequenceNum 4
+(
+    seqnum: 0-31
+)
+vec![0, 0, 0, 0]
+);
+
+// gre key optional data
+make_header!(
+GREKey 4
+(
+    key: 0-31
+)
+vec![0, 0, 0, 0]
+);
+
+// erspan type 2 header
+make_header!(
+ERSPAN2 8
+(
+    version: 0-3,
+    vlan: 4-15,
+    cos: 16-18,
+    en: 19-20,
+    t: 21-21,
+    session_id: 22-31,
+    reserved: 32-43,
+    index: 44-63
+)
+vec![0x10, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]
+);
+
+// erspan type 3 header
+make_header!(
+ERSPAN3 12
+(
+    version: 0-3,
+    vlan: 4-15,
+    cos: 16-18,
+    bos: 19-20,
+    t: 21-21,
+    session_id: 22-31,
+    timestamp: 32-63,
+    sgt: 64-79,
+    p: 80-80,
+    ft: 81-85,
+    hw_id: 86-91,
+    d: 92-92,
+    gra: 93-94,
+    o: 95-95
+)
+vec![0x20, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]
+);
+
+// erspan 3 platform header
+make_header!(
+ERSPANPLATFORM 8
+(
+    id: 0-5,
+    info: 6-63
+)
+vec![0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]
 );
 
 // stp header

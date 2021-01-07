@@ -538,6 +538,77 @@ mod tests {
             ip_tcpv6.clone(),
         );
 
+        let _greip4 = Packet::create_gre_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "192.168.0.199",
+            "192.168.0.1",
+            0,
+            64,
+            0,
+            0x4000,
+            Vec::new(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &[],
+            Some(ip_tcp.clone()),
+        );
+
+        let _greip6 = Packet::create_gre_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "192.168.0.199",
+            "192.168.0.1",
+            0,
+            64,
+            0,
+            0x4000,
+            Vec::new(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &[],
+            Some(ip_udpv6.clone()),
+        );
+
+        let mut _llc = Packet::new(100);
+        _llc.push(Dot3::from(vec![
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0x0, 86,
+        ]));
+        _llc.push(LLC::from(vec![0x0, 0x04, 0x0]));
+
+        let mut _snap = Packet::new(100);
+        _snap.push(Dot3::from(vec![
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0x0, 86,
+        ]));
+        _snap.push(LLC::from(vec![0xaa, 0xaa, 0x03]));
+        _snap.push(SNAP::from(vec![0x0, 0x80, 0xc2, 0x8, 0x0]));
+
         let pkts: Vec<&Packet> = vec![
             &_tcp,
             &_udp,
@@ -555,6 +626,10 @@ mod tests {
             &_ip4ip6,
             &_ip6ip4,
             &_ip6ip6,
+            &_llc,
+            &_snap,
+            &_greip4,
+            &_greip6,
         ];
         pcap_write(&pkts.iter().map(|x| x.to_vec() as Vec<u8>).collect());
 
