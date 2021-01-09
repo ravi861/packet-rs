@@ -59,11 +59,15 @@ pub const IPV6_HDR_LEN: usize = 40;
 pub const UDP_HDR_LEN: usize = 8;
 pub const TCP_HDR_LEN: usize = 20;
 pub const VXLAN_HDR_LEN: usize = 8;
+pub const ERSPAN2_HDR_LEN: usize = 8;
+pub const ERSPAN3_HDR_LEN: usize = 12;
 
 pub const ETHERTYPE_IPV4: u16 = 0x0800;
 pub const ETHERTYPE_ARP: u16 = 0x0806;
 pub const ETHERTYPE_DOT1Q: u16 = 0x8100;
 pub const ETHERTYPE_IPV6: u16 = 0x86DD;
+pub const ETHERTYPE_ERSPAN_II: u16 = 0x88be;
+pub const ETHERTYPE_ERSPAN_III: u16 = 0x22eb;
 
 pub const UDP_PORT_VXLAN: u16 = 4789;
 
@@ -71,6 +75,8 @@ pub const MAC_LEN: usize = 6;
 pub const IPV4_LEN: usize = 4;
 pub const IPV6_LEN: usize = 16;
 
+pub const ERSPAN_II_VERSON: u8 = 1;
+pub const ERSPAN_III_VERSON: u8 = 2;
 #[doc(hidden)]
 pub trait ConvertToBytes {
     fn to_mac_bytes(&self) -> [u8; MAC_LEN];
@@ -284,6 +290,9 @@ impl Packet {
         }
         pkt
     }
+    fn len(&self) -> usize {
+        self.pktlen
+    }
     #[staticmethod]
     pub fn ethernet(dst: &str, src: &str, etype: u16) -> Ethernet {
         let mut data: Vec<u8> = Vec::new();
@@ -477,6 +486,38 @@ impl Packet {
         data.extend_from_slice(&key.to_be_bytes());
         GREKey::from(data)
     }
+    #[staticmethod]
+    pub fn erspan2(vlan: u16, cos: u8, en: u8, t: u8, session_id: u16, index: u32) -> ERSPAN2 {
+        let mut data: Vec<u8> = Vec::new();
+        let b1: u16 = (ERSPAN_II_VERSON as u16) << 12 | vlan;
+        let b2: u16 = (cos as u16) << 13 | (en as u16) << 11 | (t as u16) << 10 | session_id;
+        data.extend_from_slice(&b1.to_be_bytes());
+        data.extend_from_slice(&b2.to_be_bytes());
+        data.extend_from_slice(&index.to_be_bytes());
+        ERSPAN2::from(data)
+    }
+    #[staticmethod]
+    pub fn erspan3(
+        vlan: u16,
+        cos: u8,
+        en: u8,
+        t: u8,
+        session_id: u16,
+        timestamp: u32,
+        sgt: u16,
+        ft_d_other: u16,
+    ) -> ERSPAN3 {
+        let mut data: Vec<u8> = Vec::new();
+        let b1: u16 = (ERSPAN_III_VERSON as u16) << 12 | vlan;
+        let b2: u16 = (cos as u16) << 13 | (en as u16) << 11 | (t as u16) << 10 | session_id;
+        data.extend_from_slice(&b1.to_be_bytes());
+        data.extend_from_slice(&b2.to_be_bytes());
+        data.extend_from_slice(&timestamp.to_be_bytes());
+        data.extend_from_slice(&sgt.to_be_bytes());
+        data.extend_from_slice(&ft_d_other.to_be_bytes());
+        ERSPAN3::from(data)
+    }
+
     #[staticmethod]
     pub fn create_eth_packet(
         eth_dst: &str,
@@ -1185,6 +1226,176 @@ impl Packet {
         };
         pkt
     }
+
+    #[staticmethod]
+    pub fn create_erspan_2_packet(
+        eth_dst: &str,
+        eth_src: &str,
+        vlan_enable: bool,
+        vlan_vid: u16,
+        vlan_pcp: u8,
+        ip_ihl: u8,
+        ip_src: &str,
+        ip_dst: &str,
+        ip_tos: u8,
+        ip_ttl: u8,
+        ip_id: u16,
+        ip_frag: u16,
+        ip_options: Vec<u8>,
+        gre_seqnum: u32,
+        erspan_vlan: u16,
+        erpsan_cos: u8,
+        erspan_en: u8,
+        erspan_t: u8,
+        erspan_session_id: u16,
+        erspan_index: u32,
+        inner_pkt: Option<Packet>,
+    ) -> Packet {
+        let mut pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + GRE_HDR_LEN + ERSPAN2_HDR_LEN;
+
+        if gre_seqnum != 0 {
+            pktlen += GRESequenceNum::size();
+        }
+        pktlen += match inner_pkt {
+            Some(ref p) => p.len(),
+            None => 0,
+        };
+
+        let mut pkt = Packet::create_ipv4_packet(
+            eth_dst,
+            eth_src,
+            vlan_enable,
+            vlan_vid,
+            vlan_pcp,
+            ip_ihl,
+            ip_src,
+            ip_dst,
+            IP_PROTOCOL_GRE,
+            ip_tos,
+            ip_ttl,
+            ip_id,
+            ip_frag,
+            ip_options,
+            pktlen as u16,
+        );
+        let mut gre = GRE::new();
+        gre.set_proto(ETHERTYPE_ERSPAN_II as u64);
+        gre.set_seqnum_present(gre_seqnum as u64);
+        pkt.push(gre);
+
+        if gre_seqnum != 0 {
+            pkt.push(Packet::gre_sequence_number(gre_seqnum));
+        }
+        let erspan = Packet::erspan2(
+            erspan_vlan,
+            erpsan_cos,
+            erspan_en,
+            erspan_t,
+            erspan_session_id,
+            erspan_index,
+        );
+        pkt.push(erspan);
+
+        match inner_pkt {
+            Some(p) => {
+                pkt = pkt + p;
+            }
+            None => (),
+        };
+        pkt
+    }
+
+    #[staticmethod]
+    pub fn create_erspan_3_packet(
+        eth_dst: &str,
+        eth_src: &str,
+        vlan_enable: bool,
+        vlan_vid: u16,
+        vlan_pcp: u8,
+        ip_ihl: u8,
+        ip_src: &str,
+        ip_dst: &str,
+        ip_tos: u8,
+        ip_ttl: u8,
+        ip_id: u16,
+        ip_frag: u16,
+        ip_options: Vec<u8>,
+        gre_seqnum: u32,
+        erspan_vlan: u16,
+        erpsan_cos: u8,
+        erspan_en: u8,
+        erspan_t: u8,
+        erspan_session_id: u16,
+        erspan_timestamp: u32,
+        erspan_sgt: u16,
+        erspan_ft_d_other: u16,
+        erspan_pltfm_id: u8,
+        erspan_pltfm_info: u64,
+        inner_pkt: Option<Packet>,
+    ) -> Packet {
+        let mut pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + GRE_HDR_LEN + ERSPAN3_HDR_LEN;
+
+        if gre_seqnum != 0 {
+            pktlen += GRESequenceNum::size();
+        }
+        if erspan_ft_d_other & 0x1 == 1 {
+            pktlen += ERSPANPLATFORM::size();
+        }
+        pktlen += match inner_pkt {
+            Some(ref p) => p.len(),
+            None => 0,
+        };
+
+        let mut pkt = Packet::create_ipv4_packet(
+            eth_dst,
+            eth_src,
+            vlan_enable,
+            vlan_vid,
+            vlan_pcp,
+            ip_ihl,
+            ip_src,
+            ip_dst,
+            IP_PROTOCOL_GRE,
+            ip_tos,
+            ip_ttl,
+            ip_id,
+            ip_frag,
+            ip_options,
+            pktlen as u16,
+        );
+        let mut gre = GRE::new();
+        gre.set_proto(ETHERTYPE_ERSPAN_III as u64);
+        gre.set_seqnum_present(gre_seqnum as u64);
+        pkt.push(gre);
+
+        if gre_seqnum != 0 {
+            pkt.push(Packet::gre_sequence_number(gre_seqnum));
+        }
+        let erspan = Packet::erspan3(
+            erspan_vlan,
+            erpsan_cos,
+            erspan_en,
+            erspan_t,
+            erspan_session_id,
+            erspan_timestamp,
+            erspan_sgt,
+            erspan_ft_d_other,
+        );
+        pkt.push(erspan);
+
+        if erspan_ft_d_other & 0x1 == 1 {
+            let pltfm: u64 = (erspan_pltfm_id as u64) << 58 | erspan_pltfm_info;
+            pkt.push(ERSPANPLATFORM::from(pltfm.to_be_bytes().to_vec()));
+        }
+
+        match inner_pkt {
+            Some(p) => {
+                pkt = pkt + p;
+            }
+            None => (),
+        };
+        pkt
+    }
 }
 
 pub fn parse(arr: &[u8]) -> Packet {
@@ -1263,19 +1474,61 @@ fn parse_ipv6(pkt: &mut Packet, arr: &[u8]) {
         IP_PROTOCOL_TCP => parse_tcp(pkt, &arr[IPv6::size()..]),
         IP_PROTOCOL_UDP => parse_udp(pkt, &arr[IPv6::size()..]),
         IP_PROTOCOL_IPV6 => parse_ipv6(pkt, &arr[IPv6::size()..]),
-        IP_PROTOCOL_GRE => parse_gre(pkt, &arr[IPv4::size()..]),
+        IP_PROTOCOL_GRE => parse_gre(pkt, &arr[IPv6::size()..]),
         _ => accept(),
     }
 }
 fn parse_gre(pkt: &mut Packet, arr: &[u8]) {
     let gre = GRE::from(arr[0..GRE::size()].to_vec());
     let proto = gre.proto() as u16;
+    let chksum_present = gre.chksum_present();
+    let seqnum_present = gre.seqnum_present();
+    let key_present = gre.key_present();
+    let mut offset = 0;
     pkt.push(gre);
+    offset += GRE::size();
+    if chksum_present == 1 {
+        pkt.push(GREChksumOffset::from(
+            arr[offset..offset + GREChksumOffset::size()].to_vec(),
+        ));
+        offset += GREChksumOffset::size();
+    }
+    if key_present == 1 {
+        pkt.push(GREKey::from(arr[offset..offset + GREKey::size()].to_vec()));
+        offset += GREKey::size();
+    }
+    if seqnum_present == 1 {
+        pkt.push(GRESequenceNum::from(
+            arr[offset..offset + GRESequenceNum::size()].to_vec(),
+        ));
+        offset += GRESequenceNum::size();
+    }
     match proto {
-        ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[Vlan::size()..]),
-        ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[Vlan::size()..]),
+        ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[offset..]),
+        ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[offset..]),
+        ETHERTYPE_ERSPAN_II => parse_erspan2(pkt, &arr[offset..]),
+        ETHERTYPE_ERSPAN_III => parse_erspan3(pkt, &arr[offset..]),
         _ => accept(),
     }
+}
+fn parse_erspan2(pkt: &mut Packet, arr: &[u8]) {
+    let erspan2 = ERSPAN2::from(arr[0..ERSPAN2::size()].to_vec());
+    pkt.push(erspan2);
+    parse_ethernet(pkt, &arr[ERSPAN2::size()..]);
+}
+fn parse_erspan3(pkt: &mut Packet, arr: &[u8]) {
+    let erspan3 = ERSPAN3::from(arr[0..ERSPAN3::size()].to_vec());
+    let o = erspan3.o();
+    pkt.push(erspan3);
+    let mut offset = 0;
+    offset += ERSPAN3::size();
+    if o == 1 {
+        pkt.push(ERSPANPLATFORM::from(
+            arr[offset..offset + ERSPANPLATFORM::size()].to_vec(),
+        ));
+        offset += ERSPANPLATFORM::size();
+    }
+    parse_ethernet(pkt, &arr[offset..]);
 }
 fn parse_arp(pkt: &mut Packet, arr: &[u8]) {
     let arp = ARP::from(arr[0..ARP::size()].to_vec());

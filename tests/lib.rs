@@ -596,6 +596,58 @@ mod tests {
             Some(ip_udpv6.clone()),
         );
 
+        let _erspan2 = Packet::create_erspan_2_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "192.168.0.199",
+            "192.168.0.1",
+            0,
+            64,
+            0,
+            0x4000,
+            Vec::new(),
+            23,
+            0,
+            0,
+            1,
+            0,
+            10,
+            10,
+            Some(_udpv6.clone()),
+        );
+
+        let _erspan3 = Packet::create_erspan_3_packet(
+            "00:01:02:03:04:05",
+            "00:06:07:08:09:0a",
+            false,
+            10,
+            3,
+            5,
+            "192.168.0.199",
+            "192.168.0.1",
+            0,
+            64,
+            0,
+            0x4000,
+            Vec::new(),
+            23,
+            0,
+            0,
+            1,
+            0,
+            10,
+            10,
+            10,
+            1,
+            4,
+            0xffffffff,
+            Some(_icmp.clone()),
+        );
+
         let mut _llc = Packet::new(100);
         _llc.push(Dot3::from(vec![
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0x0, 86,
@@ -630,6 +682,8 @@ mod tests {
             &_snap,
             &_greip4,
             &_greip6,
+            &_erspan2,
+            &_erspan3,
         ];
         pcap_write(&pkts.iter().map(|x| x.to_vec() as Vec<u8>).collect());
 
