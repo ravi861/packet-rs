@@ -66,6 +66,7 @@ pub const ETHERTYPE_IPV4: u16 = 0x0800;
 pub const ETHERTYPE_ARP: u16 = 0x0806;
 pub const ETHERTYPE_DOT1Q: u16 = 0x8100;
 pub const ETHERTYPE_IPV6: u16 = 0x86DD;
+pub const ETHERTYPE_MPLS: u16 = 0x8847;
 pub const ETHERTYPE_ERSPAN_II: u16 = 0x88be;
 pub const ETHERTYPE_ERSPAN_III: u16 = 0x22eb;
 
@@ -75,8 +76,8 @@ pub const MAC_LEN: usize = 6;
 pub const IPV4_LEN: usize = 4;
 pub const IPV6_LEN: usize = 16;
 
-pub const ERSPAN_II_VERSON: u8 = 1;
-pub const ERSPAN_III_VERSON: u8 = 2;
+pub const ERSPAN_II_VERSION: u8 = 1;
+pub const ERSPAN_III_VERSION: u8 = 2;
 #[doc(hidden)]
 pub trait ConvertToBytes {
     fn to_mac_bytes(&self) -> [u8; MAC_LEN];
@@ -489,7 +490,7 @@ impl Packet {
     #[staticmethod]
     pub fn erspan2(vlan: u16, cos: u8, en: u8, t: u8, session_id: u16, index: u32) -> ERSPAN2 {
         let mut data: Vec<u8> = Vec::new();
-        let b1: u16 = (ERSPAN_II_VERSON as u16) << 12 | vlan;
+        let b1: u16 = (ERSPAN_II_VERSION as u16) << 12 | vlan;
         let b2: u16 = (cos as u16) << 13 | (en as u16) << 11 | (t as u16) << 10 | session_id;
         data.extend_from_slice(&b1.to_be_bytes());
         data.extend_from_slice(&b2.to_be_bytes());
@@ -508,7 +509,7 @@ impl Packet {
         ft_d_other: u16,
     ) -> ERSPAN3 {
         let mut data: Vec<u8> = Vec::new();
-        let b1: u16 = (ERSPAN_III_VERSON as u16) << 12 | vlan;
+        let b1: u16 = (ERSPAN_III_VERSION as u16) << 12 | vlan;
         let b2: u16 = (cos as u16) << 13 | (en as u16) << 11 | (t as u16) << 10 | session_id;
         data.extend_from_slice(&b1.to_be_bytes());
         data.extend_from_slice(&b2.to_be_bytes());
@@ -516,6 +517,11 @@ impl Packet {
         data.extend_from_slice(&sgt.to_be_bytes());
         data.extend_from_slice(&ft_d_other.to_be_bytes());
         ERSPAN3::from(data)
+    }
+    #[staticmethod]
+    pub fn mpls(label: u32, exp: u8, bos: u8, ttl: u8) {
+        let w: u32 = label << 20 | (exp as u32) << 23 | (bos as u32) << 24 | ttl as u32;
+        MPLS::from(w.to_be_bytes().to_vec());
     }
 
     #[staticmethod]
@@ -819,8 +825,8 @@ impl Packet {
         let pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + ipkt_vec.len();
 
         let ip_proto = match ipkt_vec[0] >> 4 & 0xf {
-            4 => IP_PROTOCOL_IPIP,
-            6 => IP_PROTOCOL_IPV6,
+            IPV4_VERSON => IP_PROTOCOL_IPIP,
+            IPV6_VERSON => IP_PROTOCOL_IPV6,
             _ => IP_PROTOCOL_IPIP,
         };
         let mut pkt = Packet::create_ipv4_packet(
@@ -1435,6 +1441,7 @@ fn parse_ethernet(pkt: &mut Packet, arr: &[u8]) {
         ETHERTYPE_ARP => parse_arp(pkt, &arr[Ethernet::size()..]),
         ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[Ethernet::size()..]),
         ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[Ethernet::size()..]),
+        ETHERTYPE_MPLS => parse_mpls(pkt, &arr[Ethernet::size()..]),
         _ => accept(),
     }
 }
@@ -1447,8 +1454,28 @@ fn parse_vlan(pkt: &mut Packet, arr: &[u8]) {
         ETHERTYPE_ARP => parse_arp(pkt, &arr[Vlan::size()..]),
         ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[Vlan::size()..]),
         ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[Vlan::size()..]),
+        ETHERTYPE_MPLS => parse_mpls(pkt, &arr[Vlan::size()..]),
         _ => accept(),
     }
+}
+fn parse_mpls(pkt: &mut Packet, arr: &[u8]) {
+    let mpls = MPLS::from(arr[0..MPLS::size()].to_vec());
+    let bos = mpls.bos();
+    pkt.push(mpls);
+    if bos == 1 {
+        parse_mpls_bos(pkt, &arr[MPLS::size()..]);
+    } else {
+        parse_mpls(pkt, &arr[MPLS::size()..]);
+    }
+}
+fn parse_mpls_bos(pkt: &mut Packet, arr: &[u8]) {
+    let mpls = MPLS::from(arr[0..MPLS::size()].to_vec());
+    pkt.push(mpls);
+    match arr[MPLS::size()] >> 4 & 0xf {
+        IPV4_VERSON => parse_ipv4(pkt, &arr[MPLS::size()..]),
+        IPV6_VERSON => parse_ipv6(pkt, &arr[MPLS::size()..]),
+        _ => parse_ethernet(pkt, &arr[MPLS::size()..]),
+    };
 }
 fn parse_ipv4(pkt: &mut Packet, arr: &[u8]) {
     let ipv4 = IPv4::from(arr[0..IPv4::size()].to_vec());

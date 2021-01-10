@@ -41,6 +41,17 @@ impl<'source> ::pyo3::FromPyObject<'source> for Box<dyn Header> {
             "UDP" => Ok(UDP::extract(obj)?.to_owned()),
             "TCP" => Ok(TCP::extract(obj)?.to_owned()),
             "Vxlan" => Ok(Vxlan::extract(obj)?.to_owned()),
+            "Dot3" => Ok(Dot3::extract(obj)?.to_owned()),
+            "LLC" => Ok(LLC::extract(obj)?.to_owned()),
+            "Snap" => Ok(Snap::extract(obj)?.to_owned()),
+            "GRE" => Ok(GRE::extract(obj)?.to_owned()),
+            "GREChksumOffset" => Ok(GREChksumOffset::extract(obj)?.to_owned()),
+            "GREKey" => Ok(GREKey::extract(obj)?.to_owned()),
+            "GRESequenceNum" => Ok(GRESequenceNum::extract(obj)?.to_owned()),
+            "ERSPAN2" => Ok(ERSPAN2::extract(obj)?.to_owned()),
+            "ERSPAN3" => Ok(ERSPAN3::extract(obj)?.to_owned()),
+            "ERSPANPLATFORM" => Ok(ERSPANPLATFORM::extract(obj)?.to_owned()),
+            "MPLS" => Ok(MPLS::extract(obj)?.to_owned()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
                 "{} header not implemented",
                 obj.str()?.to_str()?
@@ -63,6 +74,17 @@ impl ::pyo3::ToPyObject for Box<dyn Header> {
             "UDP" => <UDP>::from(self).into_py(py),
             "TCP" => <TCP>::from(self).into_py(py),
             "Vxlan" => <Vxlan>::from(self).into_py(py),
+            "Dot3" => <Dot3>::from(self).into_py(py),
+            "LLC" => <LLC>::from(self).into_py(py),
+            "Snap" => <Snap>::from(self).into_py(py),
+            "GRE" => <GRE>::from(self).into_py(py),
+            "GREChksumOffset" => <GREChksumOffset>::from(self).into_py(py),
+            "GREKey" => <GREKey>::from(self).into_py(py),
+            "GRESequenceNum" => <GRESequenceNum>::from(self).into_py(py),
+            "ERSPAN2" => <ERSPAN2>::from(self).into_py(py),
+            "ERSPAN3" => <ERSPAN3>::from(self).into_py(py),
+            "ERSPANPLATFORM" => <ERSPANPLATFORM>::from(self).into_py(py),
+            "MPLS" => <MPLS>::from(self).into_py(py),
             _ => panic!(format!("{} header not found", self.name())),
         };
         b
@@ -618,6 +640,18 @@ STP 35
 )
 vec![0x0, 0x0 , 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
      0x0, 0x0 , 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x14, 0x0, 0x2, 0x0, 0xF]
+);
+
+// mpls header
+make_header!(
+MPLS 4
+(
+    label: 0-19,
+    exp: 20-22,
+    bos: 23-23,
+    ttl: 24-31
+)
+vec![0, 0, 0, 0]
 );
 
 make_header!(
