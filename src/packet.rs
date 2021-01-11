@@ -40,8 +40,8 @@ pub fn ipv4_checksum_verify(v: &[u8]) -> u16 {
     out
 }
 
-pub const IPV4_VERSON: u8 = 4;
-pub const IPV6_VERSON: u8 = 6;
+pub const IPV4_VERSION: u8 = 4;
+pub const IPV6_VERSION: u8 = 6;
 
 pub const IP_PROTOCOL_ICMP: u8 = 1;
 pub const IP_PROTOCOL_IPIP: u8 = 4;
@@ -519,9 +519,9 @@ impl Packet {
         ERSPAN3::from(data)
     }
     #[staticmethod]
-    pub fn mpls(label: u32, exp: u8, bos: u8, ttl: u8) {
+    pub fn mpls(label: u32, exp: u8, bos: u8, ttl: u8) -> MPLS {
         let w: u32 = label << 20 | (exp as u32) << 23 | (bos as u32) << 24 | ttl as u32;
-        MPLS::from(w.to_be_bytes().to_vec());
+        MPLS::from(w.to_be_bytes().to_vec())
     }
 
     #[staticmethod]
@@ -825,8 +825,8 @@ impl Packet {
         let pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + ipkt_vec.len();
 
         let ip_proto = match ipkt_vec[0] >> 4 & 0xf {
-            IPV4_VERSON => IP_PROTOCOL_IPIP,
-            IPV6_VERSON => IP_PROTOCOL_IPV6,
+            IPV4_VERSION => IP_PROTOCOL_IPIP,
+            IPV6_VERSION => IP_PROTOCOL_IPV6,
             _ => IP_PROTOCOL_IPIP,
         };
         let mut pkt = Packet::create_ipv4_packet(
@@ -868,8 +868,8 @@ impl Packet {
         let pktlen = ETHERNET_HDR_LEN + IPV6_HDR_LEN + ipkt_vec.len();
 
         let ip_next_hdr = match ipkt_vec[0] >> 4 & 0xf {
-            4 => IP_PROTOCOL_IPIP,
-            6 => IP_PROTOCOL_IPV6,
+            IPV4_VERSION => IP_PROTOCOL_IPIP,
+            IPV6_VERSION => IP_PROTOCOL_IPV6,
             _ => IP_PROTOCOL_IPIP,
         };
         let mut pkt = Packet::create_ipv6_packet(
@@ -1472,8 +1472,8 @@ fn parse_mpls_bos(pkt: &mut Packet, arr: &[u8]) {
     let mpls = MPLS::from(arr[0..MPLS::size()].to_vec());
     pkt.push(mpls);
     match arr[MPLS::size()] >> 4 & 0xf {
-        IPV4_VERSON => parse_ipv4(pkt, &arr[MPLS::size()..]),
-        IPV6_VERSON => parse_ipv6(pkt, &arr[MPLS::size()..]),
+        IPV4_VERSION => parse_ipv4(pkt, &arr[MPLS::size()..]),
+        IPV6_VERSION => parse_ipv6(pkt, &arr[MPLS::size()..]),
         _ => parse_ethernet(pkt, &arr[MPLS::size()..]),
     };
 }
