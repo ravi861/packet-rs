@@ -1,5 +1,5 @@
 from ptf.testutils import *
-from rscapy import *
+from rpacket import *
 from datetime import datetime
 import copy
 

@@ -105,8 +105,8 @@ impl ::pyo3::ToPyObject for Box<dyn Header> {
 /// # Example
 ///
 /// ```rust
-/// # #[macro_use] extern crate rscapy;
-/// # use rscapy::headers::*;
+/// # #[macro_use] extern crate rpacket;
+/// # use rpacket::headers::*;
 /// # fn main() {}
 /// make_header!(
 /// Vlan 4

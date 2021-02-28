@@ -1,7 +1,7 @@
-extern crate rscapy;
+extern crate rpacket;
 
-use rscapy::headers::*;
-use rscapy::Packet;
+use rpacket::headers::*;
+use rpacket::Packet;
 
 fn main() {
     // create a simple Ethernet header

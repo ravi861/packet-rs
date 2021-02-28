@@ -1,5 +1,5 @@
 [package]
-name = "rscapy"
+name = "rpacket"
 version = "0.1.0"
 authors = ["Ravi Vantipalli <vantipal@vantipal-mac02.local>"]
 edition = "2018"
@@ -15,7 +15,7 @@ pyo3-nullify = { path = "pyo3-nullify", version = "0.1.0" }
 pyo3 = { version = "*", optional = true }
 
 [lib]
-name = "rscapy"
+name = "rpacket"
 crate-type = ["cdylib", "rlib"]
 
 [features]

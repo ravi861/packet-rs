@@ -1,4 +1,4 @@
-from rscapy import *
+from rpacket import *
 
 # create an ethernet header
 eth = Ethernet()

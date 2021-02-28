@@ -36,7 +36,7 @@ pub trait DataPlane: Send {
 
 #[cfg(feature = "python-module")]
 #[pymodule]
-fn rscapy(_py: Python, m: &PyModule) -> PyResult<()> {
+fn rpacket(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Ethernet>()?;
     m.add_class::<Vlan>()?;
     m.add_class::<ARP>()?;

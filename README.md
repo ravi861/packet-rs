@@ -1,10 +1,10 @@
-Rust based Scapy alternative
+rpacket is a Rust based Scapy alternative
 
 Introduction
 ============
-Rscapy is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets with custom headers.
+rpacket is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets with custom headers.
 <br>
-Rscapy has the most common networking headers already pre-defined.
+rpacket has the most common networking headers already pre-defined.
 
 make_header
 ===========
@@ -22,14 +22,14 @@ make_header! {
 
 Define a header
 ---------------
-Add a new header by using the *make_header* macro. This automatically creates a set_*field*() and a get() helper methods for each field.
+Add a new header by using the *make_header* macro. This automatically creates a set_*field*() and a *field*() helper methods for each field.
 
 ```rust
 #[macro_use]
-extern crate rscapy;
+extern crate rpacket;
 
-use rscapy::headers::*;
-use rscapy::Packet;
+use rpacket::headers::*;
+use rpacket::Packet;
 
 make_header!(
 MyHeader 4
