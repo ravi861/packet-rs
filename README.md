@@ -3,6 +3,8 @@ Rust based Scapy alternative
 Introduction
 ============
 Rscapy is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets with custom headers.
+<br>
+Rscapy has the most common networking headers already pre-defined.
 
 make_header
 ===========
@@ -30,44 +32,41 @@ use rscapy::headers::*;
 use rscapy::Packet;
 
 make_header!(
-Vlan 4
+MyHeader 4
 (
-    pcp: 0-2,
-    cfi: 3-3,
-    vid: 4-15,
-    etype: 16-31
+    field_1: 0-2,
+    field_2: 3-3,
+    field_3: 4-15,
+    field_4: 16-31
 )
 vec![0x0, 0xa, 0x8, 0x0]      // <= optional default data
 );
 ```
-3 ways to create a header
+2 ways to create a header
 -------------------------
 ```rust
-// Call new on the vlan header
-let vlan = Vlan::new();
+// Call new on the *MyHeader* header
+let hdr = MyHeader::new();
 
 // Pass a data buffer as an argument
-let vlan = Vlan([0x00, 0x0a, 0x08, 0x10]);
-
-// Use an associate function from Packet struct
-let vlan = Packet::vlan(2, 1, 10, 0x086dd);
+let hdr = MyHeader([0x00, 0x0a, 0x08, 0x10]);
 ```
 make_header! generates helper methods and associated functions for each header and fields
 ```rust
-vlan.octets();                // get the vlan header as a byte array
-vlan.cfi();                   // fetch the cfi field value
-vlan.set_cfi(1);              // set the cfi field value
-let vlan_new = vlan.clone();  // clone the packet
-vlan.show();                  // display the vlan header
+hdr.octets();                    // get the vlan header as a byte array
+println!("{}", hdr.field_2());   // fetch the cfi field value
+vlan.set_field_2(1);             // set the cfi field value
+let hdr_new = hdr.clone();       // clone the packet
+hdr.show();                      // display the vlan header
 
 Output of show():
 Raw: 00 0a 08 00
-#### Vlan             Size   Data
+#### MyHeader         Size   Data
 -------------------------------------------
-pcp                 :    3 : 02
-cfi                 :    1 : 01
-vid                 :   12 : 00 10
-etype               :   16 : 08 00
+field_1             :    3 : 02
+field_2             :    1 : 01
+field_3             :   12 : 00 10
+field_4             :   16 : 08 00
 ```
 Create a Packet
 ---------------
