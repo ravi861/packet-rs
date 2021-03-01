@@ -7,14 +7,23 @@ pub use paste::paste;
 #[doc(hidden)]
 pub use std::any::Any;
 
+/// Represents a generic packet header
 pub trait Header: Send {
+    /// Return the name of the header
     fn name(&self) -> &str;
+    /// Return the length of the header
     fn len(&self) -> usize;
+    /// Show the header
     fn show(&self);
+    /// Return the header as a byte array
     fn as_slice(&self) -> &[u8];
+    /// Clone the header
     fn clone(&self) -> Box<dyn Header>;
+    /// Consume the header as owned
     fn to_owned(self) -> Box<dyn Header>;
+    /// Get a reference to the underlying concrete type
     fn as_any(&self) -> &dyn Any;
+    /// Get a mutable reference to the underlying concrete type
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
@@ -91,10 +100,12 @@ impl ::pyo3::ToPyObject for Box<dyn Header> {
     }
 }
 
-/// Declares a header
+/// Defines a header
 ///
 /// This macro will generate get and set methods for each field of the header.
+///
 /// In addition, each header will also come with the [Header](headers/trait.Header.html) trait implemented.
+///
 /// Finally, a few associate functions are provided for ease of use.
 ///
 /// The macro's syntax is composed of 3 sections

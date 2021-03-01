@@ -160,14 +160,43 @@ impl Clone for Packet {
 }
 
 impl Packet {
+    /// Push a header into the packet from the stack
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// let mut pkt = Packet::new(100);
+    /// let eth = Ethernet::new();
+    /// pkt.push(eth);
+    /// ```
     pub fn push(&mut self, hdr: impl Header) {
         self.hdrlen += hdr.len();
         self.hdrs.push(hdr.to_owned());
     }
+    /// Push a header into the packet from the heap
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// let mut pkt = Packet::new(100);
+    /// let eth = Box::new(Ethernet::new());
+    /// pkt.push_boxed_header(eth);
+    /// ```
     pub fn push_boxed_header(&mut self, hdr: Box<dyn Header>) {
         self.hdrlen += hdr.len();
         self.hdrs.push(hdr);
     }
+    /// Pop a header at the top of the packet
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// let mut pkt = Packet::new(100);
+    /// pkt.push(Ethernet::new());
+    /// pkt.push(Vlan::new());
+    /// // vlan header is now popped from the packet
+    /// pkt.pop();
+    /// ```
     pub fn pop(&mut self) -> () {
         if self.hdrs.len() != 0 {
             let last = self.hdrs.pop().unwrap();
@@ -175,6 +204,18 @@ impl Packet {
             self.pktlen -= last.len();
         }
     }
+    /// Remove a header with an index
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// let mut pkt = Packet::new(100);
+    /// pkt.push(Ethernet::new());
+    /// pkt.push(Vlan::new());
+    /// pkt.push(IPv4::new());
+    /// // vlan header is now removed from the packet
+    /// pkt.remove(1);
+    /// ```
     pub fn remove(&mut self, index: usize) -> () {
         if self.hdrs.len() != 0 && index < self.hdrs.len() {
             let remove = self.hdrs.remove(index);
@@ -182,6 +223,27 @@ impl Packet {
             self.pktlen -= remove.len();
         }
     }
+    /// Get immutable access to a header from the packet
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// let mut pkt = Packet::new(100);
+    /// pkt.push(Ethernet::new());
+    /// // use this API for immutable access
+    /// let x: &Ethernet = pkt.get_header("Ethernet").unwrap();
+    /// println!("{}", x.etype());
+    ///
+    /// // use the Index trait of Packet to get Header
+    /// let y: &Box<dyn Header> = &pkt["Ethernet"];
+    /// // use the into trait of Header to get Ethernet header
+    /// let x: &Ethernet = y.into();
+    /// println!("{}", x.etype());
+    ///
+    /// // use the Index trait of Packet and convert to Ethernet header
+    /// let x: &Ethernet = (&pkt["Ethernet"]).into();
+    /// println!("{}", x.etype());
+    /// ```
     pub fn get_header<'a, T: 'static>(&'a self, index: &'a str) -> Result<&'a T, String> {
         let y: &Box<dyn Header> = &self[index];
         match y.as_any().downcast_ref::<T>() {
@@ -189,6 +251,22 @@ impl Packet {
             None => Err(format!("{} header not found", index)),
         }
     }
+    /// Get mutable access to a header from the packet
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// let mut pkt = Packet::new(100);
+    /// pkt.push(Ethernet::new());
+    /// // use this API for mutable access
+    /// let x: &mut Ethernet = pkt.get_header_mut("Ethernet").unwrap();
+    /// x.set_etype(0x9999);
+    ///
+    /// // use the IndexMut trait of Packet and convert to mutable Ethernet header
+    /// let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
+    /// let x: &mut Ethernet = x.into();
+    /// x.set_etype(0x9999);
+    /// ```
     pub fn get_header_mut<'a, T: 'static>(
         &'a mut self,
         index: &'a str,
@@ -230,6 +308,14 @@ impl pyo3::PyMappingProtocol for Packet {
 #[pymethods]
 impl Packet {
     #[new]
+    /// Create a new Packet instance of size "pktlen". Length does not change on pushing or popping headers
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate rpacket; use rpacket::Packet;
+    /// let pkt = Packet::new(100);
+    /// pkt.show();
+    /// ```
     pub fn new(pktlen: usize) -> Packet {
         Packet {
             hdrs: Vec::new(),
@@ -237,11 +323,29 @@ impl Packet {
             pktlen,
         }
     }
+    /// Compare this packet with another Packet
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate rpacket; use rpacket::Packet;
+    /// let pkt = Packet::new(100);
+    /// let other = Packet::new(100);
+    /// pkt.compare(&other);
+    /// ```
     pub fn compare(&self, pkt: &Packet) -> bool {
         let a = pkt.to_vec();
         self.compare_with_slice(a.as_slice())
     }
     #[inline]
+    /// Compare this packet with an array of bytes
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate rpacket; use rpacket::Packet;
+    /// let pkt = Packet::new(100);
+    /// let other = Packet::new(100);
+    /// pkt.compare_with_slice(other.to_vec().as_slice());
+    /// ```
     pub fn compare_with_slice(&self, b: &[u8]) -> bool {
         if self.pktlen != b.len() {
             println!("this {} other {}", self.pktlen, b.len());
@@ -255,6 +359,7 @@ impl Packet {
         }
         true
     }
+    /// Display the packet contents
     pub fn show(&self) -> () {
         for s in &self.hdrs {
             s.show();
@@ -272,6 +377,14 @@ impl Packet {
         }
         println!();
     }
+    /// Copies packet into a new vec
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate rpacket; use rpacket::Packet;
+    /// let pkt = Packet::new(100);
+    /// let v = pkt.to_vec();
+    /// ```
     pub fn to_vec(&self) -> Vec<u8> {
         let mut r = Vec::new();
         for s in &self.hdrs {
@@ -291,6 +404,7 @@ impl Packet {
         }
         pkt
     }
+    /// Return length of the packet
     fn len(&self) -> usize {
         self.pktlen
     }
