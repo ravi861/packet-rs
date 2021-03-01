@@ -2,7 +2,7 @@ rpacket is a Rust based Scapy alternative
 
 Introduction
 ============
-rpacket is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets with custom headers.
+rpacket is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets.
 <br>
 rpacket has the most common networking headers already pre-defined.
 
@@ -55,7 +55,7 @@ make_header! generates helper methods and associated functions for each header a
 ```rust
 hdr.octets();                    // get the vlan header as a byte array
 println!("{}", hdr.field_2());   // fetch the cfi field value
-vlan.set_field_2(1);             // set the cfi field value
+hdr.set_field_2(1);              // set the cfi field value
 let hdr_new = hdr.clone();       // clone the packet
 hdr.show();                      // display the vlan header
 

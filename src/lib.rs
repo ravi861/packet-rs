@@ -18,11 +18,9 @@
 //!  * The `headers` module, allows for defining new and custom headers
 //!  * The `packet` module, a convenient abstraction of a network packet and container to hold a group of headers
 //!
-//! ### Define your own header
+//! ### Define a header
 //!
-//! This (fairly useless) code implements an Ethernet echo server. Whenever a
-//! packet is received on an interface, it echo's the packet back; reversing the
-//! source and destination addresses.
+//! Define a header which can go into a new protocol stack
 //!
 //! ```rust,no_run
 //! #[macro_use]
@@ -49,9 +47,47 @@
 //!
 //! // make_header! generates helper methods and associated functions for each header and fields
 //! println!("{}", hdr.field_2());   // fetch the field_2 value
-//! vlan.set_field_2(1);             // set the field_2 value
+//! hdr.set_field_2(1);              // set the field_2 value
 //! hdr.show();                      // display the MyHeader header
+//! ```
 //!
+//! ### Create a Packet
+//!
+//! A packet is an ordered list of headers. Push headers as required into a packet.
+//! ```rust,no_run
+//! // Construct a UDP packet with sane defaults
+//! let mut pkt = Packet::new(100);
+//! pkt.push(Ethernet::new());
+//! pkt.push(IPv4::new());
+//! pkt.push(UDP::new());
+//!
+//! // display packet contents
+//! pkt.show()
+//! #### Ethernet         Size   Data
+//! -------------------------------------------
+//! dst                 :   48 : 00 01 02 03 04 05
+//! src                 :   48 : 00 06 07 08 09 0a
+//! etype               :   16 : 08 00
+//! #### IPv4             Size   Data
+//! -------------------------------------------
+//! version             :    4 : 04
+//! ihl                 :    4 : 05
+//! diffserv            :    8 : 00
+//! total_len           :   16 : 00 14
+//! identification      :   16 : 00 33
+//! flags               :    3 : 02
+//! frag_startset       :   13 : 06 29
+//! ttl                 :    8 : 64
+//! protocol            :    8 : 06
+//! header_checksum     :   16 : fa ec
+//! src                 :   32 : c0 a8 00 01
+//! dst                 :   32 : c0 a8 00 02
+//! #### UDP              Size   Data
+//! -------------------------------------------
+//! src                 :   16 : 23 82
+//! dst                 :   16 : 04 d2
+//! length              :   16 : 00 5f
+//! checksum            :   16 : 00 00
 //! ```
 
 #![allow(dead_code)]
