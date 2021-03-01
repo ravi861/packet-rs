@@ -1,9 +1,34 @@
+#[macro_use]
 extern crate rpacket;
 
 use rpacket::headers::*;
 use rpacket::Packet;
 
 fn main() {
+    make_header!(
+    MyHeader 4
+    (
+        field_1: 0-2,
+        field_2: 3-3,
+        field_3: 4-15,
+        field_4: 16-31
+    )
+    vec![0x0, 0xa, 0x8, 0x0]      // <= optional default data
+    );
+
+    // 2 ways to use a header
+    // Call new on the *MyHeader* header
+    let hdr = MyHeader::new();
+    hdr.show();
+
+    // Pass a data buffer as an argument
+    let mut hdr = MyHeader::from(vec![0xF3, 0x01, 0x08, 0xFF]);
+    // fetch the field_2 value
+    println!("{}", hdr.field_2());
+    // set the field_2 value
+    hdr.set_field_2(1);
+    hdr.show();
+
     // create a simple Ethernet header
     let mut eth = Ethernet::new();
     eth.show();

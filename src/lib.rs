@@ -8,7 +8,7 @@
 
 //! # rpacket
 //!
-//! `rpacket` is a Rust language based Scapy alternative
+//! `rpacket` is a Rust language based Scapy alternative with ability to generate rust bindings for Python
 //!
 //! ## Introduction
 //!
@@ -22,10 +22,9 @@
 //!
 //! Define a header which can go into a new protocol stack
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! #[macro_use]
 //! extern crate rpacket;
-//! use rpacket::headers::*;
 //!
 //! make_header!(
 //! MyHeader 4
@@ -43,7 +42,7 @@
 //! let hdr = MyHeader::new();
 //!
 //! // Pass a data buffer as an argument
-//! let hdr = MyHeader([0x00, 0x0a, 0x08, 0x10]);
+//! let hdr = MyHeader::from(vec![0xF0, 0x0a, 0x08, 0x10]);
 //!
 //! // make_header! generates helper methods and associated functions for each header and fields
 //! println!("{}", hdr.field_2());   // fetch the field_2 value
@@ -53,13 +52,13 @@
 //!
 //! ### Create a Packet
 //!
-//! A packet is an ordered list of headers. Push headers as required into a packet.
-//! ```rust,no_run
-//! // Construct a UDP packet with sane defaults
+//! A packet is an ordered list of headers. Push headers as required into a packet
+//! ```rust,ignore
+//! // Construct a UDP packet with sane defaults or use the pre-defined Packet associate functions
 //! let mut pkt = Packet::new(100);
 //! pkt.push(Ethernet::new());
 //! pkt.push(IPv4::new());
-//! pkt.push(UDP::new());
+//! pkt.push(Packet::udp(1023, 1234, 95, 0));
 //!
 //! // display packet contents
 //! pkt.show()
@@ -95,7 +94,9 @@ extern crate bitfield;
 extern crate paste;
 
 // pub here means expose to outside of crate
+#[cfg(feature = "net")]
 pub mod dataplane;
+
 pub mod headers;
 pub mod packet;
 
@@ -120,6 +121,7 @@ pub struct Packet {
     pktlen: usize,
 }
 
+#[cfg(feature = "net")]
 pub trait DataPlane: Send {
     fn run(&self);
     fn send(&mut self, intf: &str, pkt: &Packet);

@@ -9,8 +9,8 @@ edition = "2018"
 [dependencies]
 bitfield = "0.13.2"
 paste = "1.0.3"
-pnet_datalink="0.27.2"
-crossbeam-queue="0.3.1"
+pnet_datalink= { version = "0.27.2", optional = true }
+crossbeam-queue= { version = "0.3.1", optional = true }
 pyo3-nullify = { path = "pyo3-nullify", version = "0.1.0" }
 pyo3 = { version = "*", optional = true }
 
@@ -20,4 +20,5 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 python-module = ["pyo3/extension-module"]
+net = ["pnet_datalink", "crossbeam-queue"]
 default = []
