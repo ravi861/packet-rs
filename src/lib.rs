@@ -58,7 +58,7 @@
 //! let mut pkt = Packet::new(100);
 //! pkt.push(Ethernet::new());
 //! pkt.push(IPv4::new());
-//! pkt.push(Packet::udp(1023, 1234, 95, 0));
+//! pkt.push(Packet::udp(1023, 1234, 95));
 //!
 //! // display packet contents
 //! pkt.show()
@@ -83,7 +83,7 @@
 //! dst                 :   32 : c0 a8 00 02
 //! #### UDP              Size   Data
 //! -------------------------------------------
-//! src                 :   16 : 23 82
+//! src                 :   16 : 03 ff
 //! dst                 :   16 : 04 d2
 //! length              :   16 : 00 5f
 //! checksum            :   16 : 00 00
