@@ -1,18 +1,18 @@
 [package]
 name = "rpacket"
 version = "0.1.0"
-authors = ["Ravi Vantipalli <vantipal@vantipal-mac02.local>"]
+authors = ["Ravi V"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 bitfield = "0.13.2"
-paste = "1.0.3"
-pnet_datalink= { version = "0.27.2", optional = true }
-crossbeam-queue= { version = "0.3.1", optional = true }
+paste = "1.0.5"
+pnet_datalink= { version = "0.28.0", optional = true }
+crossbeam-queue= { version = "0.3.2", optional = true }
 pyo3-nullify = { path = "pyo3-nullify", version = "0.1.0" }
-pyo3 = { version = "*", optional = true }
+pyo3 = { version = "0.14.5", optional = true }
 
 [lib]
 name = "rpacket"
