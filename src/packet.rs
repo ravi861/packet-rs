@@ -279,9 +279,11 @@ impl Packet {
     }
 }
 
-#[pyproto]
-#[cfg(feature = "python-module")]
-impl pyo3::PyNumberProtocol for Packet {
+
+
+#[pymethods]
+impl Packet {
+    #[cfg(feature = "python-module")]
     fn __add__(lhs: PyObject, rhs: PyObject) -> PyResult<Packet> {
         let gil = Python::acquire_gil();
         let mut x: Packet = lhs.extract(gil.python()).unwrap();
@@ -289,24 +291,34 @@ impl pyo3::PyNumberProtocol for Packet {
         x.push_boxed_header(y);
         Ok(x)
     }
-}
-
-#[pyproto]
-#[cfg(feature = "python-module")]
-impl pyo3::PyMappingProtocol for Packet {
-    fn __getitem__(&self, index: String) -> PyObject {
+    fn __getitem1__(slf: &PyCell<Self>, index: String) -> PyObject {
         let gil = ::pyo3::Python::acquire_gil();
-        let hdr: &Box<dyn Header> = &self[&index];
+        let mut pkt = slf.try_borrow_mut().unwrap();
+        let hdr: &mut Box<dyn Header> = &mut pkt[&index];
         hdr.to_object(gil.python())
     }
+    #[cfg(feature = "python-module")]
+    fn __getitem__(&mut self, index: String) -> PyObject {
+        let gil = ::pyo3::Python::acquire_gil();
+        let hdr: &mut Box<dyn Header> = &mut self[&index];
+        println!("Getting {}", hdr.name());
+        hdr.to_object(gil.python())
+    }
+    /*
+    fn __getitem2__(mut slf : PyRef<'_, Self>, index: String) -> PyRef<'_, Ethernet> {
+        let gil = ::pyo3::Python::acquire_gil();
+        let hdr: & Box<dyn Header> = & slf[&index];
+        let e = &<Ethernet>::from(hdr);
+        let n = PyCell::new(gil.python(), e).unwrap();
+        let k = n.borrow();
+        k
+    }
+    */
+    #[cfg(feature = "python-module")]
     fn __setitem__(&mut self, index: String, value: Ethernet) -> () {
         let x: &mut Ethernet = self.get_header_mut(index.as_str()).unwrap();
         x.replace(&value);
     }
-}
-
-#[pymethods]
-impl Packet {
     #[new]
     /// Create a new Packet instance of size "pktlen". Length does not change on pushing or popping headers
     /// # Example

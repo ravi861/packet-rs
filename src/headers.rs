@@ -94,7 +94,7 @@ impl ::pyo3::ToPyObject for Box<dyn Header> {
             "ERSPAN3" => <ERSPAN3>::from(self).into_py(py),
             "ERSPANPLATFORM" => <ERSPANPLATFORM>::from(self).into_py(py),
             "MPLS" => <MPLS>::from(self).into_py(py),
-            _ => panic!(format!("{} header not found", self.name())),
+            _ => panic!("{} header not found", self.name()),
         };
         b
     }
@@ -268,6 +268,20 @@ macro_rules! make_header {
                 pub fn as_slice(&self) -> &[u8] {
                     self.data.as_ref()
                 }
+                #[cfg(feature = "python-module")]
+                fn __add__(lhs: ::pyo3::PyObject, rhs: ::pyo3::PyObject) -> ::pyo3::PyResult<Packet> {
+                    let gil = ::pyo3::Python::acquire_gil();
+                    let me: $name = lhs.extract(gil.python()).unwrap();
+                    let mut pkt = Packet::new(300);
+                    pkt.push(me);
+                    let other: Box<dyn Header> = rhs.extract(gil.python()).unwrap();
+                    pkt.push_boxed_header(other);
+                    Ok(pkt)
+                }
+                #[cfg(feature = "python-module")]
+                fn __str__(&self) -> ::pyo3::PyResult<String> {
+                    Ok(String::from(stringify!($name)))
+                }
             }
             impl From<Vec<u8>> for $name {
                 fn from(data: Vec<u8>) -> $name {
@@ -299,26 +313,6 @@ macro_rules! make_header {
                         None => panic!("Header is not a {}", stringify!($name)),
                     };
                     b
-                }
-            }
-            #[pyproto]
-            #[cfg(feature = "python-module")]
-            impl ::pyo3::PyNumberProtocol for $name {
-                fn __add__(lhs: ::pyo3::PyObject, rhs: ::pyo3::PyObject) -> ::pyo3::PyResult<Packet> {
-                    let gil = ::pyo3::Python::acquire_gil();
-                    let me: $name = lhs.extract(gil.python()).unwrap();
-                    let mut pkt = Packet::new(300);
-                    pkt.push(me);
-                    let other: Box<dyn Header> = rhs.extract(gil.python()).unwrap();
-                    pkt.push_boxed_header(other);
-                    Ok(pkt)
-                }
-            }
-            #[pyproto]
-            #[cfg(feature = "python-module")]
-            impl ::pyo3::PyObjectProtocol for $name {
-                fn __str__(&self) -> ::pyo3::PyResult<String> {
-                    Ok(String::from(stringify!($name)))
                 }
             }
             impl Header for $name {
