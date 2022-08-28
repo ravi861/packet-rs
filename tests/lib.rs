@@ -64,7 +64,7 @@ mod tests {
         );
         let data: Vec<u8> = vec![0; 10];
         let mut my_header = MyOwnHeader::from(data);
-        my_header.as_slice();
+        my_header.to_vec().as_slice();
         my_header.show();
 
         my_header.set_bytes_1(0x22);
@@ -98,7 +98,8 @@ mod tests {
             0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0x86, 0xdd,
         ];
         let eth = Ethernet::from(a.to_vec());
-        let b = eth.as_slice();
+        let t = eth.to_vec();
+        let b = t.as_slice();
         assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 14);
         assert_eq!(0xaaaaaaaaaaaa, eth.dst());
         assert_eq!(0xbbbbbbbbbbbb, eth.src());
@@ -126,7 +127,8 @@ mod tests {
 
         let a = [0x7f, 0xff, 0x08, 0x00];
         let vlan = Vlan::from(a.to_vec());
-        let b = vlan.as_slice();
+        let t = vlan.to_vec();
+        let b = t.as_slice();
         assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 4);
         assert_eq!(vlan.vid(), 4095);
         assert_eq!(vlan.pcp(), 3);
@@ -135,7 +137,7 @@ mod tests {
     #[test]
     fn ip_header_test() {
         let ipv4 = IPv4::new();
-        ipv4.as_slice();
+        ipv4.to_vec().as_slice();
         ipv4.show();
 
         let data = [
@@ -146,11 +148,11 @@ mod tests {
         ipv4.show();
 
         let ipv4 = Packet::ipv4(5, 10, 4, 64, 0xdd, 6, "10.10.10.1", "11.11.11.1", 86);
-        assert_eq!(ipv4_checksum_verify(ipv4.as_slice()), 0);
+        assert_eq!(ipv4_checksum_verify(ipv4.to_vec().as_slice()), 0);
 
         let data: Vec<u8> = vec![0; IPv6::size()];
         let ipv6 = IPv6::from(data);
-        ipv6.as_slice();
+        ipv6.to_vec().as_slice();
         ipv6.show();
     }
     #[test]
@@ -209,10 +211,10 @@ mod tests {
                         100,
                     );
                     let ip: &IPv4 = (&pkt["IPv4"]).into();
-                    assert_eq!(ipv4_checksum_verify(ip.as_slice()), 0);
+                    assert_eq!(ipv4_checksum_verify(ip.to_vec().as_slice()), 0);
 
                     let ipv4 = Packet::ipv4(5, 0, 115, ttl, 0, 6, sip, dip, 86);
-                    assert_eq!(ipv4_checksum_verify(ipv4.as_slice()), 0);
+                    assert_eq!(ipv4_checksum_verify(ipv4.to_vec().as_slice()), 0);
 
                     assert_eq!(ip.header_checksum(), ipv4.header_checksum());
                 }

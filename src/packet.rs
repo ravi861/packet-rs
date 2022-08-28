@@ -279,8 +279,6 @@ impl Packet {
     }
 }
 
-
-
 #[pymethods]
 impl Packet {
     #[cfg(feature = "python-module")]
@@ -400,7 +398,7 @@ impl Packet {
     pub fn to_vec(&self) -> Vec<u8> {
         let mut r = Vec::new();
         for s in &self.hdrs {
-            r.extend_from_slice(&s.as_slice());
+            r.extend_from_slice(&s.to_vec().as_slice());
         }
         let mut payload: Vec<u8> = (0..(self.pktlen - self.hdrlen) as u16)
             .map(|x| x as u8)

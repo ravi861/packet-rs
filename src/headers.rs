@@ -6,6 +6,8 @@ pub use ::bitfield::BitRange;
 pub use paste::paste;
 #[doc(hidden)]
 pub use std::any::Any;
+pub use std::sync::Arc;
+pub use std::sync::Mutex;
 
 /// Represents a generic packet header
 pub trait Header: Send {
@@ -15,8 +17,8 @@ pub trait Header: Send {
     fn len(&self) -> usize;
     /// Show the header
     fn show(&self);
-    /// Return the header as a byte array
-    fn as_slice(&self) -> &[u8];
+    /// Return the header as a vector copy
+    fn to_vec(&self) -> Vec<u8>;
     /// Clone the header
     fn clone(&self) -> Box<dyn Header>;
     /// Consume the header as owned
@@ -100,6 +102,12 @@ impl ::pyo3::ToPyObject for Box<dyn Header> {
     }
 }
 
+#[pyclass]
+#[derive(Clone)]
+pub struct ProtectedArray {
+    pub a: Arc<Mutex<Vec<u8>>>,
+}
+
 /// Defines a header
 ///
 /// This macro will generate get and set methods for each field of the header.
@@ -142,7 +150,7 @@ macro_rules! make_header {
             #[derive(FromPyObject)]
             pub struct $name {
                 #[pyo3(get)]
-                data: Vec<u8>
+                data: ProtectedArray
             }
             impl ::bitfield::BitRange<u64> for $name {
                 fn bit_range(&self, msb: usize, lsb: usize) -> u64 {
@@ -151,7 +159,8 @@ macro_rules! make_header {
                     let mut value: u64 = 0;
                     for i in lsb..=msb {
                         value <<= 1;
-                        value |= ((self.data[i / bit_len] >> (bit_len - i % bit_len - 1)) & 1) as u64;
+                        let map = self.data.a.lock().unwrap();
+                        value |= ((map[i / bit_len] >> (bit_len - i % bit_len - 1)) & 1) as u64;
                     }
                     value << (value_bit_len - (msb - lsb + 1)) >> (value_bit_len - (msb - lsb + 1))
                 }
@@ -159,8 +168,9 @@ macro_rules! make_header {
                     let bit_len = ::bitfield::size_of::<u8>() * 8;
                     let mut value = value;
                     for i in (lsb..=msb).rev() {
-                        self.data[i / bit_len] &= !(1 << (bit_len - i % bit_len - 1));
-                        self.data[i / bit_len] |= ((value & 1) as u8) << (bit_len - i % bit_len - 1);
+                        let mut map = self.data.a.lock().unwrap();
+                        map[i / bit_len] &= !(1 << (bit_len - i % bit_len - 1));
+                        map[i / bit_len] |= ((value & 1) as u8) << (bit_len - i % bit_len - 1);
                         value >>= 1;
                     }
                 }
@@ -169,11 +179,13 @@ macro_rules! make_header {
             impl $name {
                 #[new]
                 pub fn new() -> $name {
-                    $name{ data: $x}
+                    let t = ProtectedArray { a: Arc::new(Mutex::new($x)) };
+                    $name{ data: t }
                 }
                 #[staticmethod]
                 pub fn from_vec(data: Vec<u8>) -> $name {
-                    $name{ data }
+                    let t = ProtectedArray { a: Arc::new(Mutex::new(data)) };
+                    $name{ data: t }
                 }
                 $(
                 #[getter]
@@ -232,8 +244,9 @@ macro_rules! make_header {
                     }
                 )*
                 pub fn replace(&mut self, other: &$name) {
-                    self.data.clear();
-                    self.data.extend_from_slice(other.data.as_ref());
+                    let mut map = self.data.a.lock().unwrap();
+                    map.clear();
+                    map.extend_from_slice(other.data.a.lock().unwrap().as_ref());
                 }
                 pub fn show(&self) -> () {
                     println!("#### {:16} {} {}", stringify!($name), "Size  ", "Data");
@@ -263,11 +276,15 @@ macro_rules! make_header {
                     )*
                 }
                 pub fn clone(&self) -> $name {
-                    $name{ data: self.data.clone() }
+                    let t1 = self.data.a.clone();
+                    let t = ProtectedArray { a: t1 };
+                    $name{ data: t }
                 }
-                pub fn as_slice(&self) -> &[u8] {
-                    self.data.as_ref()
+                pub fn to_vec(&self) -> Vec<u8> {
+                    let map = self.data.a.lock().unwrap();
+                    map.clone()
                 }
+                /*
                 #[cfg(feature = "python-module")]
                 fn __add__(lhs: ::pyo3::PyObject, rhs: ::pyo3::PyObject) -> ::pyo3::PyResult<Packet> {
                     let gil = ::pyo3::Python::acquire_gil();
@@ -278,6 +295,7 @@ macro_rules! make_header {
                     pkt.push_boxed_header(other);
                     Ok(pkt)
                 }
+                */
                 #[cfg(feature = "python-module")]
                 fn __str__(&self) -> ::pyo3::PyResult<String> {
                     Ok(String::from(stringify!($name)))
@@ -285,7 +303,7 @@ macro_rules! make_header {
             }
             impl From<Vec<u8>> for $name {
                 fn from(data: Vec<u8>) -> $name {
-                    $name{ data }
+                    $name{ data: ProtectedArray { a: Arc::new(Mutex::new(data)) } }
                 }
             }
             impl<'a> From<&'a Box<dyn Header>> for $name {
@@ -319,8 +337,8 @@ macro_rules! make_header {
                 fn show(&self) {
                     self.show();
                 }
-                fn as_slice(&self) -> &[u8] {
-                    self.as_slice()
+                fn to_vec(&self) -> Vec<u8> {
+                    self.to_vec()
                 }
                 fn clone(&self) -> Box<dyn Header> {
                     Box::new(self.clone())
