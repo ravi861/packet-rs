@@ -4,11 +4,6 @@ use std::{net::Ipv6Addr, str::FromStr};
 use crate::headers::*;
 use crate::Packet;
 
-#[cfg(not(feature = "python-module"))]
-extern crate pyo3_nullify;
-#[cfg(not(feature = "python-module"))]
-use pyo3_nullify::*;
-
 #[cfg(feature = "python-module")]
 use pyo3::prelude::*;
 

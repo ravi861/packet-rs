@@ -109,11 +109,6 @@ pub mod packet;
 
 use headers::Header;
 
-#[cfg(not(feature = "python-module"))]
-extern crate pyo3_nullify;
-#[cfg(not(feature = "python-module"))]
-use pyo3_nullify::*;
-
 #[cfg(feature = "python-module")]
 use headers::*;
 

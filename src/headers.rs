@@ -6,7 +6,9 @@ pub use ::bitfield::BitRange;
 pub use paste::paste;
 #[doc(hidden)]
 pub use std::any::Any;
+#[doc(hidden)]
 pub use std::sync::Arc;
+#[doc(hidden)]
 pub use std::sync::Mutex;
 
 /// Represents a generic packet header
@@ -30,14 +32,7 @@ pub trait Header: Send {
 }
 
 #[cfg(feature = "python-module")]
-use crate::Packet;
-#[cfg(feature = "python-module")]
 use pyo3::prelude::*;
-
-#[cfg(not(feature = "python-module"))]
-extern crate pyo3_nullify;
-#[cfg(not(feature = "python-module"))]
-use pyo3_nullify::*;
 
 #[cfg(feature = "python-module")]
 impl<'source> ::pyo3::FromPyObject<'source> for Box<dyn Header> {
