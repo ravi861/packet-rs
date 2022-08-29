@@ -8,7 +8,7 @@
 
 //! # rpacket
 //!
-//! `rpacket` is a Rust language based Scapy alternative with added ability to generate rust bindings for Python
+//! `rpacket` is a Rust based Scapy alternative supporting Rust bindings for Python.
 //!
 //! ## Introduction
 //!
@@ -91,9 +91,8 @@
 //!
 //! ### Python support
 //!
-//! rpacket supports Rust bindings for Python. All of pre-defined header and Packet APIs are available as Python APIs
-//! cargo build --features python-module
-//! Copy librpacket.so and rename to rpacket.so in your PYTHONPATH and then "import rpacket". Please refer to examples/pkt.py
+//! rpacket supports Rust bindings for Python. All of the pre-defined header and Packet APIs are available as Python APIs
+//! Please refer to examples/pkt.py and pyo3/maturin documentation on how to use the bindings.
 //!
 
 #![allow(dead_code)]
