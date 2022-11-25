@@ -9,7 +9,7 @@ A Scapy like interface to build and define custom packet headers
 keywords = ["networking", "headers", "packets", "generation", "scapy"]
 repository = "https://github.com/ravi861/packet-rs"
 readme = "README.md"
-license = "Apache"
+license = "Apache-2.0"
 exclude = [".github", ".gitignore", "*.pcap", "*.log", "tags"]
 
 [dependencies]
