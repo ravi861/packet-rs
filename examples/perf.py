@@ -47,7 +47,7 @@ print(datetime.now() - tstart, 10000, " PTF clone")
 
 tstart = datetime.now()
 for i in range(0,cnt):
-    p = Ethernet() + IPv4() + TCP()
+    p = Ether() + IPv4() + TCP()
 print(datetime.now() - tstart, cnt, "Rscapy construct TCP")
 
 tstart = datetime.now()

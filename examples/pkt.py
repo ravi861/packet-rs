@@ -1,7 +1,7 @@
 from packet_rs import *
 
 # create an ethernet header
-eth = Ethernet()
+eth = Ether()
 eth.show()
 
 # get ethertype using idiomatic python get
@@ -19,15 +19,15 @@ eth.show()
 # create a new packet of size 100
 pkt = Packet(100)
 # append above ethernet header
-pkt = pkt + Ethernet()
+pkt = pkt + Ether()
 pkt.show()
 
 # headers can also be appended to obtained a packet
-pkt = Ethernet() + Vxlan()
+pkt = Ether() + Vxlan()
 pkt.show()
 
 # create a TCP packet appending each header
-pkt = Packet(100) + Ethernet() + IPv4() + TCP()
+pkt = Packet(100) + Ether() + IPv4() + TCP()
 pkt.show()
 
 # create a TCP packet using the Packet helper function
