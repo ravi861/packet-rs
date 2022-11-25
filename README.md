@@ -1,10 +1,10 @@
-packet is a Rust based Scapy alternative
+packet_rs is a Rust based Scapy alternative
 
 Introduction
 ============
-packet is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets.
+packet_rs is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets.
 <br>
-packet has the most common networking headers already pre-defined.
+packet_rs has the most common networking headers already pre-defined.
 
 make_header
 ===========
@@ -26,10 +26,10 @@ Add a new header by using the *make_header* macro. This automatically creates a 
 
 ```rust
 #[macro_use]
-extern crate packet;
+extern crate packet_rs;
 
-use packet::headers::*;
-use packet::Packet;
+use packet_rs::headers::*;
+use packet_rs::Packet;
 
 make_header!(
 MyHeader 4
