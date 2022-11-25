@@ -10,7 +10,7 @@ keywords = ["networking", "packet generation", "scapy"]
 repository = "https://github.com/ravi861/packet-rs"
 readme = "README.md"
 license = "Apache"
-exclude = ["".github", ".gitignore", "*.pcap", "*.log", "tags"]
+exclude = [".github", ".gitignore", "*.pcap", "*.log", "tags"]
 
 [dependencies]
 bitfield = "0.13.2"
