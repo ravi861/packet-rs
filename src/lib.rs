@@ -99,10 +99,6 @@
 extern crate bitfield;
 extern crate paste;
 
-// pub here means expose to outside of crate
-#[cfg(feature = "net")]
-pub mod dataplane;
-
 pub mod headers;
 pub mod packet;
 
@@ -120,14 +116,6 @@ pub struct Packet {
     hdrs: Vec<Box<dyn Header>>,
     hdrlen: usize,
     pktlen: usize,
-}
-
-#[cfg(feature = "net")]
-pub trait DataPlane: Send {
-    fn run(&self);
-    fn send(&mut self, intf: &str, pkt: &Packet);
-    fn verify_packet(&self, intf: &str, pkt: &Packet);
-    fn verify_packet_on_each_port(&self, intfs: Vec<&str>, pkt: &Packet);
 }
 
 #[cfg(feature = "python-module")]
