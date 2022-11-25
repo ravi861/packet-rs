@@ -6,7 +6,7 @@ edition = "2021"
 description = """
 A Scapy like interface to build and define custom packet headers
 """
-keywords = ["networking", "packet generation", "scapy"]
+keywords = ["networking", "headers", "packets", "generation", "scapy"]
 repository = "https://github.com/ravi861/packet-rs"
 readme = "README.md"
 license = "Apache"
