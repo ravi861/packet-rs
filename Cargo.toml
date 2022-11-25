@@ -1,10 +1,15 @@
 [package]
-name = "packet"
+name = "packet_rs"
 version = "0.1.0"
 authors = ["Ravi V"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = """
+A Scapy like interface to build and define custom packet headers
+"""
+keywords = ["networking", "packet generation", "scapy"]
+repository = "https://github.com/ravi861/packet-rs"
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
 bitfield = "0.13.2"
@@ -12,7 +17,7 @@ paste = "1.0.5"
 pyo3 = { version = "0.16.5", optional = true }
 
 [lib]
-name = "packet"
+name = "packet_rs"
 crate-type = ["cdylib", "rlib"]
 
 [features]

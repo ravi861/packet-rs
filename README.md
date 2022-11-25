@@ -73,11 +73,11 @@ Create a Packet
 A packet is an ordered list of headers. Push headers as required into a packet.
 ```rust
 let mut pkt = Packet::new(100);
-pkt.push(Ethernet::new()));
+pkt.push(Ether::new()));
 pkt.push(IPv4::new());
 pkt.show()
 
-#### Ethernet         Size   Data
+#### Ether         Size   Data
 -------------------------------------------
 dst                 :   48 : 00 01 02 03 04 05
 src                 :   48 : 00 06 07 08 09 0a
@@ -98,10 +98,10 @@ src                 :   32 : c0 a8 00 01
 dst                 :   32 : c0 a8 00 02
 
 // access ethernet header immutable
-let x: &Ethernet<Vec<u8>> = (&pkt["Ethernet"]).into();
+let x: &Ether<Vec<u8>> = (&pkt["Ether"]).into();
 println!("{}", x.etype());
 
 // access ethernet header mutable
-let x: &mut Ethernet<Vec<u8>> = (&mut pkt["Ethernet"]).into();
+let x: &mut Ether<Vec<u8>> = (&mut pkt["Ether"]).into();
 x.set_etype(0x1111);
 ```

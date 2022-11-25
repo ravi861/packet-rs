@@ -1,7 +1,7 @@
 #[macro_use]
-extern crate packet;
+extern crate packet_rs;
 
-use packet::headers::*;
+use packet_rs::headers::*;
 
 use std::time::Instant;
 
@@ -11,9 +11,9 @@ mod pcap;
 mod tests {
 
     use super::*;
+    use packet_rs::packet::*;
+    use packet_rs::Packet;
     use pcap::pcap_write;
-    use packet::packet::*;
-    use packet::Packet;
 
     #[test]
     fn set_get_octets_test() {
@@ -76,7 +76,7 @@ mod tests {
     }
     #[test]
     fn ethernet_header_test() {
-        let mut eth = Ethernet::new();
+        let mut eth = Ether::new();
         eth.show();
 
         // dst
@@ -97,7 +97,7 @@ mod tests {
         let a = [
             0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0x86, 0xdd,
         ];
-        let eth = Ethernet::from(a.to_vec());
+        let eth = Ether::from(a.to_vec());
         let t = eth.to_vec();
         let b = t.as_slice();
         assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 14);
@@ -723,8 +723,8 @@ mod tests {
             100,
         );
         pkt.show();
-        let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
-        let x: &mut Ethernet = x.into();
+        let x: &mut Box<dyn Header> = &mut pkt["Ether"];
+        let x: &mut Ether = x.into();
         x.set_etype(0x86dd);
         x.show();
 
@@ -735,26 +735,26 @@ mod tests {
         assert_eq!(true, pkt.compare_with_slice(new_pkt.to_vec().as_slice()));
 
         // immutable
-        let x: &Ethernet = pkt.get_header("Ethernet").unwrap();
+        let x: &Ether = pkt.get_header("Ether").unwrap();
         println!("{}", x.etype());
         x.show();
 
-        let y: &Box<dyn Header> = &pkt["Ethernet"];
-        let x: &Ethernet = y.into();
+        let y: &Box<dyn Header> = &pkt["Ether"];
+        let x: &Ether = y.into();
         println!("{}", x.etype());
         x.show();
 
-        let x: &Ethernet = (&pkt["Ethernet"]).into();
+        let x: &Ether = (&pkt["Ether"]).into();
         println!("{}", x.etype());
         x.show();
 
         // mutable
-        let x: &mut Ethernet = pkt.get_header_mut("Ethernet").unwrap();
+        let x: &mut Ether = pkt.get_header_mut("Ether").unwrap();
         x.set_etype(0x9999);
         x.show();
 
-        let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
-        let x: &mut Ethernet = x.into();
+        let x: &mut Box<dyn Header> = &mut pkt["Ether"];
+        let x: &mut Ether = x.into();
         x.set_etype(0x9999);
         x.show();
     }
@@ -835,7 +835,7 @@ mod tests {
         // update packet and then clone in each iteration
         let start = Instant::now();
         for i in 0..cnt {
-            let x: &mut Ethernet = (&mut pkt["Ethernet"]).into();
+            let x: &mut Ether = (&mut pkt["Ether"]).into();
             x.set_etype(i % 0xFFFF);
             let p = pkt.clone();
             p.to_vec();

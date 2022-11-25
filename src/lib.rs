@@ -6,14 +6,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! # packet
+//! # packet_rs
 //!
-//! `packet` is a Rust based Scapy alternative supporting Rust bindings for Python.
+//! `packet_rs` is a Rust based Scapy alternative supporting Rust bindings for Python.
 //!
 //! ## Introduction
 //!
-//! packet is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets.
-//! packet has the most common networking headers already pre-defined.
+//! packet_rs is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets.
+//! packet_rs has the most common networking headers already pre-defined.
 //!
 //!  * The `headers` module, allows for defining new and custom headers
 //!  * The `packet` module, a convenient abstraction of a network packet and container to hold a group of headers
@@ -24,7 +24,7 @@
 //!
 //! ```rust,ignore
 //! #[macro_use]
-//! extern crate packet;
+//! extern crate packet_rs;
 //!
 //! make_header!(
 //! MyHeader 4
@@ -44,7 +44,7 @@
 //! // Pass a data buffer as an argument
 //! let hdr = MyHeader::from(vec![0xF0, 0x0a, 0x08, 0x10]);
 //!
-//! // make_header! generates helper methods and associated functions for each header and fields
+//! // make_header! generates helper methods and associated functions for each field in the header
 //! println!("{}", hdr.field_2());   // fetch the field_2 value
 //! hdr.set_field_2(1);              // set the field_2 value
 //! hdr.show();                      // display the MyHeader header
@@ -53,16 +53,22 @@
 //! ### Create a Packet
 //!
 //! A packet is an ordered list of headers. Push headers as required into a packet
-//! ```rust,ignore
+//! ```rust
+//! extern crate packet_rs;
+//! use packet_rs::Packet;
+//! use packet_rs::headers::{Ether, IPv4};
+//!
 //! // Construct a UDP packet with sane defaults or use the pre-defined Packet associate functions
 //! let mut pkt = Packet::new(100);
-//! pkt.push(Ethernet::new());
+//! pkt.push(Ether::new());
 //! pkt.push(IPv4::new());
 //! pkt.push(Packet::udp(1023, 1234, 95));
 //!
 //! // display packet contents
-//! pkt.show()
-//! #### Ethernet         Size   Data
+//! pkt.show();
+//! ```
+//! ```ignore
+//! #### Ether            Size   Data
 //! -------------------------------------------
 //! dst                 :   48 : 00 01 02 03 04 05
 //! src                 :   48 : 00 06 07 08 09 0a
@@ -91,7 +97,7 @@
 //!
 //! ### Python support
 //!
-//! packet supports Rust bindings for Python. All of the pre-defined header and Packet APIs are available as Python APIs
+//! packet_rs supports Rust bindings for Python. All of the pre-defined header and Packet APIs are available as Python APIs
 //! Please refer to examples/pkt.py and pyo3/maturin documentation on how to use the bindings.
 //!
 
@@ -121,7 +127,7 @@ pub struct Packet {
 #[cfg(feature = "python-module")]
 #[pymodule]
 fn packet(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<Ethernet>()?;
+    m.add_class::<Ether>()?;
     m.add_class::<Vlan>()?;
     m.add_class::<ARP>()?;
     m.add_class::<IPv4>()?;

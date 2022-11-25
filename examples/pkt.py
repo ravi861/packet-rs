@@ -1,4 +1,4 @@
-from packet import *
+from packet_rs import *
 
 # create an ethernet header
 eth = Ethernet()

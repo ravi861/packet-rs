@@ -38,7 +38,7 @@ use pyo3::prelude::*;
 impl<'source> ::pyo3::FromPyObject<'source> for Box<dyn Header> {
     fn extract(obj: &'source ::pyo3::PyAny) -> ::pyo3::PyResult<Self> {
         let b = match obj.str()?.to_str()? {
-            "Ethernet" => Ok(Ethernet::extract(obj)?.to_owned()),
+            "Ether" => Ok(Ether::extract(obj)?.to_owned()),
             "ARP" => Ok(ARP::extract(obj)?.to_owned()),
             "Vlan" => Ok(Vlan::extract(obj)?.to_owned()),
             "ICMP" => Ok(ICMP::extract(obj)?.to_owned()),
@@ -71,7 +71,7 @@ impl<'source> ::pyo3::FromPyObject<'source> for Box<dyn Header> {
 impl ::pyo3::ToPyObject for Box<dyn Header> {
     fn to_object(&self, py: Python) -> ::pyo3::PyObject {
         let b = match self.name() {
-            "Ethernet" => <Ethernet>::from(self).into_py(py),
+            "Ether" => <Ether>::from(self).into_py(py),
             "ARP" => <ARP>::from(self).into_py(py),
             "Vlan" => <Vlan>::from(self).into_py(py),
             "ICMP" => <ICMP>::from(self).into_py(py),
@@ -119,8 +119,8 @@ pub struct ProtectedArray {
 /// # Example
 ///
 /// ```rust
-/// # #[macro_use] extern crate packet;
-/// # use packet::headers::*;
+/// # #[macro_use] extern crate packet_rs;
+/// # use packet_rs::headers::*;
 /// # fn main() {}
 /// make_header!(
 /// Vlan 4
@@ -374,7 +374,7 @@ macro_rules! make_header {
 
 // ethernet 2 header
 make_header!(
-Ethernet 14
+Ether 14
 (
     dst: 0-47,
     src: 48-95,

@@ -159,9 +159,9 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
     /// let mut pkt = Packet::new(100);
-    /// let eth = Ethernet::new();
+    /// let eth = Ether::new();
     /// pkt.push(eth);
     /// ```
     pub fn push(&mut self, hdr: impl Header) {
@@ -172,9 +172,9 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
     /// let mut pkt = Packet::new(100);
-    /// let eth = Box::new(Ethernet::new());
+    /// let eth = Box::new(Ether::new());
     /// pkt.push_boxed_header(eth);
     /// ```
     pub fn push_boxed_header(&mut self, hdr: Box<dyn Header>) {
@@ -185,9 +185,9 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
     /// let mut pkt = Packet::new(100);
-    /// pkt.push(Ethernet::new());
+    /// pkt.push(Ether::new());
     /// pkt.push(Vlan::new());
     /// // vlan header is now popped from the packet
     /// pkt.pop();
@@ -203,9 +203,9 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
     /// let mut pkt = Packet::new(100);
-    /// pkt.push(Ethernet::new());
+    /// pkt.push(Ether::new());
     /// pkt.push(Vlan::new());
     /// pkt.push(IPv4::new());
     /// // vlan header is now removed from the packet
@@ -222,21 +222,21 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
     /// let mut pkt = Packet::new(100);
-    /// pkt.push(Ethernet::new());
+    /// pkt.push(Ether::new());
     /// // use this API for immutable access
-    /// let x: &Ethernet = pkt.get_header("Ethernet").unwrap();
+    /// let x: &Ether = pkt.get_header("Ether").unwrap();
     /// println!("{}", x.etype());
     ///
     /// // use the Index trait of Packet to get Header
-    /// let y: &Box<dyn Header> = &pkt["Ethernet"];
-    /// // use the into trait of Header to get Ethernet header
-    /// let x: &Ethernet = y.into();
+    /// let y: &Box<dyn Header> = &pkt["Ether"];
+    /// // use the into trait of Header to get Ether header
+    /// let x: &Ether = y.into();
     /// println!("{}", x.etype());
     ///
-    /// // use the Index trait of Packet and convert to Ethernet header
-    /// let x: &Ethernet = (&pkt["Ethernet"]).into();
+    /// // use the Index trait of Packet and convert to Ether header
+    /// let x: &Ether = (&pkt["Ether"]).into();
     /// println!("{}", x.etype());
     /// ```
     pub fn get_header<'a, T: 'static>(&'a self, index: &'a str) -> Result<&'a T, String> {
@@ -250,16 +250,16 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
     /// let mut pkt = Packet::new(100);
-    /// pkt.push(Ethernet::new());
+    /// pkt.push(Ether::new());
     /// // use this API for mutable access
-    /// let x: &mut Ethernet = pkt.get_header_mut("Ethernet").unwrap();
+    /// let x: &mut Ether = pkt.get_header_mut("Ether").unwrap();
     /// x.set_etype(0x9999);
     ///
-    /// // use the IndexMut trait of Packet and convert to mutable Ethernet header
-    /// let x: &mut Box<dyn Header> = &mut pkt["Ethernet"];
-    /// let x: &mut Ethernet = x.into();
+    /// // use the IndexMut trait of Packet and convert to mutable Ether header
+    /// let x: &mut Box<dyn Header> = &mut pkt["Ether"];
+    /// let x: &mut Ether = x.into();
     /// x.set_etype(0x9999);
     /// ```
     pub fn get_header_mut<'a, T: 'static>(
@@ -298,18 +298,18 @@ impl Packet {
         hdr.to_object(gil.python())
     }
     /*
-    fn __getitem2__(mut slf : PyRef<'_, Self>, index: String) -> PyRef<'_, Ethernet> {
+    fn __getitem2__(mut slf : PyRef<'_, Self>, index: String) -> PyRef<'_, Ether> {
         let gil = ::pyo3::Python::acquire_gil();
         let hdr: & Box<dyn Header> = & slf[&index];
-        let e = &<Ethernet>::from(hdr);
+        let e = &<Ether>::from(hdr);
         let n = PyCell::new(gil.python(), e).unwrap();
         let k = n.borrow();
         k
     }
     */
     #[cfg(feature = "python-module")]
-    fn __setitem__(&mut self, index: String, value: Ethernet) -> () {
-        let x: &mut Ethernet = self.get_header_mut(index.as_str()).unwrap();
+    fn __setitem__(&mut self, index: String, value: Ether) -> () {
+        let x: &mut Ether = self.get_header_mut(index.as_str()).unwrap();
         x.replace(&value);
     }
     #[new]
@@ -317,7 +317,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate packet; use packet::Packet;
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::Packet;
     /// let pkt = Packet::new(100);
     /// pkt.show();
     /// ```
@@ -332,7 +332,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate packet; use packet::Packet;
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::Packet;
     /// let pkt = Packet::new(100);
     /// let other = Packet::new(100);
     /// pkt.compare(&other);
@@ -346,7 +346,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate packet; use packet::Packet;
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::Packet;
     /// let pkt = Packet::new(100);
     /// let other = Packet::new(100);
     /// pkt.compare_with_slice(other.to_vec().as_slice());
@@ -386,7 +386,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate packet; use packet::Packet;
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::Packet;
     /// let pkt = Packet::new(100);
     /// let v = pkt.to_vec();
     /// ```
@@ -414,12 +414,12 @@ impl Packet {
         self.pktlen
     }
     #[staticmethod]
-    pub fn ethernet(dst: &str, src: &str, etype: u16) -> Ethernet {
+    pub fn ethernet(dst: &str, src: &str, etype: u16) -> Ether {
         let mut data: Vec<u8> = Vec::new();
         data.extend_from_slice(&dst.to_mac_bytes());
         data.extend_from_slice(&src.to_mac_bytes());
         data.extend_from_slice(&etype.to_be_bytes());
-        Ethernet::from(data)
+        Ether::from(data)
     }
     #[staticmethod]
     pub fn dot3(dst: &str, src: &str, length: u16) -> Dot3 {
@@ -1552,15 +1552,15 @@ fn parse_snap(pkt: &mut Packet, arr: &[u8]) {
 }
 
 fn parse_ethernet(pkt: &mut Packet, arr: &[u8]) {
-    let eth = Ethernet::from(arr[0..Ethernet::size()].to_vec());
+    let eth = Ether::from(arr[0..Ether::size()].to_vec());
     let etype = eth.etype() as u16;
     pkt.push(eth);
     match etype {
-        ETHERTYPE_DOT1Q => parse_vlan(pkt, &arr[Ethernet::size()..]),
-        ETHERTYPE_ARP => parse_arp(pkt, &arr[Ethernet::size()..]),
-        ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[Ethernet::size()..]),
-        ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[Ethernet::size()..]),
-        ETHERTYPE_MPLS => parse_mpls(pkt, &arr[Ethernet::size()..]),
+        ETHERTYPE_DOT1Q => parse_vlan(pkt, &arr[Ether::size()..]),
+        ETHERTYPE_ARP => parse_arp(pkt, &arr[Ether::size()..]),
+        ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[Ether::size()..]),
+        ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[Ether::size()..]),
+        ETHERTYPE_MPLS => parse_mpls(pkt, &arr[Ether::size()..]),
         _ => accept(),
     }
 }

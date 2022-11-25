@@ -1,8 +1,8 @@
 #[macro_use]
-extern crate packet;
+extern crate packet_rs;
 
-use packet::headers::*;
-use packet::Packet;
+use packet_rs::headers::*;
+use packet_rs::Packet;
 
 fn main() {
     make_header!(
@@ -29,8 +29,8 @@ fn main() {
     hdr.set_field_2(1);
     hdr.show();
 
-    // create a simple Ethernet header
-    let mut eth = Ethernet::new();
+    // create a simple Ether header
+    let mut eth = Ether::new();
     eth.show();
 
     // get the etype field from the header
@@ -47,7 +47,7 @@ fn main() {
 
     // create a UDP packet by pushing each header in sequence
     let mut pkt = Packet::new(100);
-    pkt.push(Ethernet::new());
+    pkt.push(Ether::new());
     pkt.push(IPv4::new());
     pkt.push(UDP::new());
     pkt.show();
