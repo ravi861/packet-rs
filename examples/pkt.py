@@ -1,4 +1,4 @@
-from rpacket import *
+from packet import *
 
 # create an ethernet header
 eth = Ethernet()

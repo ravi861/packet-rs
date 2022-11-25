@@ -1,7 +1,7 @@
 #[macro_use]
-extern crate rpacket;
+extern crate packet;
 
-use rpacket::headers::*;
+use packet::headers::*;
 
 use std::time::Instant;
 
@@ -12,8 +12,8 @@ mod tests {
 
     use super::*;
     use pcap::pcap_write;
-    use rpacket::packet::*;
-    use rpacket::Packet;
+    use packet::packet::*;
+    use packet::Packet;
 
     #[test]
     fn set_get_octets_test() {

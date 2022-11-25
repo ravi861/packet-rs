@@ -1,8 +1,8 @@
 #[macro_use]
-extern crate rpacket;
+extern crate packet;
 
-use rpacket::headers::*;
-use rpacket::Packet;
+use packet::headers::*;
+use packet::Packet;
 
 fn main() {
     make_header!(

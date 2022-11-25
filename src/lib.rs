@@ -6,14 +6,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! # rpacket
+//! # packet
 //!
-//! `rpacket` is a Rust based Scapy alternative supporting Rust bindings for Python.
+//! `packet` is a Rust based Scapy alternative supporting Rust bindings for Python.
 //!
 //! ## Introduction
 //!
-//! rpacket is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets.
-//! rpacket has the most common networking headers already pre-defined.
+//! packet is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets.
+//! packet has the most common networking headers already pre-defined.
 //!
 //!  * The `headers` module, allows for defining new and custom headers
 //!  * The `packet` module, a convenient abstraction of a network packet and container to hold a group of headers
@@ -24,7 +24,7 @@
 //!
 //! ```rust,ignore
 //! #[macro_use]
-//! extern crate rpacket;
+//! extern crate packet;
 //!
 //! make_header!(
 //! MyHeader 4
@@ -91,7 +91,7 @@
 //!
 //! ### Python support
 //!
-//! rpacket supports Rust bindings for Python. All of the pre-defined header and Packet APIs are available as Python APIs
+//! packet supports Rust bindings for Python. All of the pre-defined header and Packet APIs are available as Python APIs
 //! Please refer to examples/pkt.py and pyo3/maturin documentation on how to use the bindings.
 //!
 
@@ -132,7 +132,7 @@ pub trait DataPlane: Send {
 
 #[cfg(feature = "python-module")]
 #[pymodule]
-fn rpacket(_py: Python, m: &PyModule) -> PyResult<()> {
+fn packet(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Ethernet>()?;
     m.add_class::<Vlan>()?;
     m.add_class::<ARP>()?;

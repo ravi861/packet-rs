@@ -119,8 +119,8 @@ pub struct ProtectedArray {
 /// # Example
 ///
 /// ```rust
-/// # #[macro_use] extern crate rpacket;
-/// # use rpacket::headers::*;
+/// # #[macro_use] extern crate packet;
+/// # use packet::headers::*;
 /// # fn main() {}
 /// make_header!(
 /// Vlan 4

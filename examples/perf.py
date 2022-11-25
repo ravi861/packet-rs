@@ -1,5 +1,5 @@
 from ptf.testutils import *
-from rpacket import *
+from packet import *
 from datetime import datetime
 import copy
 

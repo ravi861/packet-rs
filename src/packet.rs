@@ -159,7 +159,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
     /// let mut pkt = Packet::new(100);
     /// let eth = Ethernet::new();
     /// pkt.push(eth);
@@ -172,7 +172,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
     /// let mut pkt = Packet::new(100);
     /// let eth = Box::new(Ethernet::new());
     /// pkt.push_boxed_header(eth);
@@ -185,7 +185,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
     /// let mut pkt = Packet::new(100);
     /// pkt.push(Ethernet::new());
     /// pkt.push(Vlan::new());
@@ -203,7 +203,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
     /// let mut pkt = Packet::new(100);
     /// pkt.push(Ethernet::new());
     /// pkt.push(Vlan::new());
@@ -222,7 +222,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
     /// let mut pkt = Packet::new(100);
     /// pkt.push(Ethernet::new());
     /// // use this API for immutable access
@@ -250,7 +250,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate rpacket; use rpacket::headers::*; use rpacket::Packet;
+    /// # #[macro_use] extern crate packet; use packet::headers::*; use packet::Packet;
     /// let mut pkt = Packet::new(100);
     /// pkt.push(Ethernet::new());
     /// // use this API for mutable access
@@ -317,7 +317,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate rpacket; use rpacket::Packet;
+    /// # #[macro_use] extern crate packet; use packet::Packet;
     /// let pkt = Packet::new(100);
     /// pkt.show();
     /// ```
@@ -332,7 +332,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate rpacket; use rpacket::Packet;
+    /// # #[macro_use] extern crate packet; use packet::Packet;
     /// let pkt = Packet::new(100);
     /// let other = Packet::new(100);
     /// pkt.compare(&other);
@@ -346,7 +346,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate rpacket; use rpacket::Packet;
+    /// # #[macro_use] extern crate packet; use packet::Packet;
     /// let pkt = Packet::new(100);
     /// let other = Packet::new(100);
     /// pkt.compare_with_slice(other.to_vec().as_slice());
@@ -386,7 +386,7 @@ impl Packet {
     /// # Example
     ///
     /// ```
-    /// # #[macro_use] extern crate rpacket; use rpacket::Packet;
+    /// # #[macro_use] extern crate packet; use packet::Packet;
     /// let pkt = Packet::new(100);
     /// let v = pkt.to_vec();
     /// ```

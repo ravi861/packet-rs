@@ -1,5 +1,5 @@
 [package]
-name = "rpacket"
+name = "packet"
 version = "0.1.0"
 authors = ["Ravi V"]
 edition = "2021"
@@ -14,10 +14,13 @@ crossbeam-queue= { version = "0.3.2", optional = true }
 pyo3 = { version = "0.16.5", optional = true }
 
 [lib]
-name = "rpacket"
+name = "packet"
 crate-type = ["cdylib", "rlib"]
 
 [features]
 python-module = ["pyo3/extension-module"]
 net = ["pnet_datalink", "crossbeam-queue"]
 default = ["python-module"]
+
+[[example]]
+name = "pkt"
