@@ -128,6 +128,9 @@ pub struct Packet {
 #[pymodule]
 fn packet(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Ether>()?;
+    m.add_class::<LLC>()?;
+    m.add_class::<SNAP>()?;
+    m.add_class::<Dot3>()?;
     m.add_class::<Vlan>()?;
     m.add_class::<ARP>()?;
     m.add_class::<IPv4>()?;
@@ -136,6 +139,15 @@ fn packet(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<UDP>()?;
     m.add_class::<TCP>()?;
     m.add_class::<Vxlan>()?;
+    m.add_class::<GRE>()?;
+    m.add_class::<GREChksumOffset>()?;
+    m.add_class::<GREKey>()?;
+    m.add_class::<GRESequenceNum>()?;
+    m.add_class::<ERSPAN2>()?;
+    m.add_class::<ERSPAN3>()?;
+    m.add_class::<ERSPANPLATFORM>()?;
+    m.add_class::<STP>()?;
+    m.add_class::<MPLS>()?;
     m.add_class::<Packet>()?;
 
     Ok(())

@@ -642,6 +642,16 @@ impl Packet {
         let w: u32 = label << 20 | (exp as u32) << 23 | (bos as u32) << 24 | ttl as u32;
         MPLS::from(w.to_be_bytes().to_vec())
     }
+    #[staticmethod]
+    pub fn snap(oui: u32, code: u16) -> SNAP {
+        let oui_01: u16 = oui as u16;
+        let oui_2: u8 = (oui >> 16) as u8;
+        let mut data: Vec<u8> = Vec::new();
+        data.extend_from_slice(&oui_01.to_be_bytes());
+        data.extend_from_slice(&oui_2.to_be_bytes());
+        data.extend_from_slice(&code.to_be_bytes());
+        SNAP::from(data)
+    }
 
     #[staticmethod]
     pub fn create_eth_packet(
