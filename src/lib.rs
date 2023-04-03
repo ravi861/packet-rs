@@ -102,15 +102,11 @@
 //!
 
 #![allow(dead_code)]
-extern crate bitfield;
-extern crate paste;
 
 pub mod headers;
 pub mod packet;
+pub mod utils;
 
-use headers::Header;
-
-#[cfg(feature = "python-module")]
 use headers::*;
 
 #[cfg(feature = "python-module")]

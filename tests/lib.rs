@@ -2,6 +2,7 @@
 extern crate packet_rs;
 
 use packet_rs::headers::*;
+use packet_rs::utils;
 
 use std::time::Instant;
 
@@ -184,7 +185,7 @@ mod tests {
         for sip in &ips {
             for dip in &ips {
                 for ttl in 1..255 {
-                    let pkt = Packet::create_tcp_packet(
+                    let pkt = utils::create_tcp_packet(
                         "00:01:02:03:04:05",
                         "00:06:07:08:09:0a",
                         false,
@@ -237,7 +238,7 @@ mod tests {
     }
     #[test]
     fn create_packet_test() {
-        let _tcp = Packet::create_tcp_packet(
+        let _tcp = utils::create_tcp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -264,7 +265,7 @@ mod tests {
             100,
         );
 
-        let _udp = Packet::create_udp_packet(
+        let _udp = utils::create_udp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -284,7 +285,7 @@ mod tests {
             129,
         );
 
-        let _icmp = Packet::create_icmp_packet(
+        let _icmp = utils::create_icmp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -305,7 +306,7 @@ mod tests {
             129,
         );
 
-        let _tcpv6 = Packet::create_tcpv6_packet(
+        let _tcpv6 = utils::create_tcpv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -328,7 +329,7 @@ mod tests {
             100,
         );
 
-        let _udpv6 = Packet::create_udpv6_packet(
+        let _udpv6 = utils::create_udpv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -345,7 +346,7 @@ mod tests {
             129,
         );
 
-        let _icmpv6 = Packet::create_icmpv6_packet(
+        let _icmpv6 = utils::create_icmpv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -363,7 +364,7 @@ mod tests {
             129,
         );
 
-        let _vxlan_udp = Packet::create_vxlan_packet(
+        let _vxlan_udp = utils::create_vxlan_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -384,7 +385,7 @@ mod tests {
             _udp.clone(),
         );
 
-        let _vxlan_tcp = Packet::create_vxlan_packet(
+        let _vxlan_tcp = utils::create_vxlan_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -405,7 +406,7 @@ mod tests {
             _tcp.clone(),
         );
 
-        let _vxlanv6_udp = Packet::create_vxlanv6_packet(
+        let _vxlanv6_udp = utils::create_vxlanv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -423,7 +424,7 @@ mod tests {
             _udp.clone(),
         );
 
-        let _vxlanv6_tcp = Packet::create_vxlanv6_packet(
+        let _vxlanv6_tcp = utils::create_vxlanv6_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -441,7 +442,7 @@ mod tests {
             _tcp.clone(),
         );
 
-        let _arp_req = Packet::create_arp_packet(
+        let _arp_req = utils::create_arp_packet(
             "FF:FF:FF:FF:FF:FF",
             "00:06:07:08:09:0a",
             false,
@@ -455,7 +456,7 @@ mod tests {
             60,
         );
 
-        let _arp_resp = Packet::create_arp_packet(
+        let _arp_resp = utils::create_arp_packet(
             "00:06:07:08:09:0a",
             "00:01:02:03:04:05",
             false,
@@ -478,7 +479,7 @@ mod tests {
         let mut ip_udpv6 = _udpv6.clone();
         ip_udpv6.remove(0);
 
-        let _ip4ip4 = Packet::create_ipv4ip_packet(
+        let _ip4ip4 = utils::create_ipv4ip_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -495,7 +496,7 @@ mod tests {
             ip_tcp.clone(),
         );
 
-        let _ip4ip6 = Packet::create_ipv4ip_packet(
+        let _ip4ip6 = utils::create_ipv4ip_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -512,7 +513,7 @@ mod tests {
             ip_udpv6.clone(),
         );
 
-        let _ip6ip4 = Packet::create_ipv6ip_packet(
+        let _ip6ip4 = utils::create_ipv6ip_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -526,7 +527,7 @@ mod tests {
             ip_udp.clone(),
         );
 
-        let _ip6ip6 = Packet::create_ipv6ip_packet(
+        let _ip6ip6 = utils::create_ipv6ip_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -540,7 +541,7 @@ mod tests {
             ip_tcpv6.clone(),
         );
 
-        let _greip4 = Packet::create_gre_packet(
+        let _greip4 = utils::create_gre_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -569,7 +570,7 @@ mod tests {
             Some(ip_tcp.clone()),
         );
 
-        let _greip6 = Packet::create_gre_packet(
+        let _greip6 = utils::create_gre_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -598,7 +599,7 @@ mod tests {
             Some(ip_udpv6.clone()),
         );
 
-        let _erspan2 = Packet::create_erspan_2_packet(
+        let _erspan2 = utils::create_erspan_2_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -622,7 +623,7 @@ mod tests {
             Some(_udpv6.clone()),
         );
 
-        let _erspan3 = Packet::create_erspan_3_packet(
+        let _erspan3 = utils::create_erspan_3_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -690,13 +691,13 @@ mod tests {
         pcap_write(&pkts.iter().map(|x| x.to_vec() as Vec<u8>).collect());
 
         for pkt in pkts {
-            let parsed = parse(pkt.to_vec().as_slice());
+            let parsed = utils::parse(pkt.to_vec().as_slice());
             assert!(parsed.compare(&pkt));
         }
     }
     #[test]
     fn update_packet_test() {
-        let mut pkt = Packet::create_tcp_packet(
+        let mut pkt = utils::create_tcp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
             false,
@@ -762,7 +763,7 @@ mod tests {
     fn pktgen_perf_test() {
         let cnt = 300000;
         let pktlen: usize = 100;
-        let mut pkt = Packet::create_tcp_packet(
+        let mut pkt = utils::create_tcp_packet(
             "00:11:11:11:11:11",
             "00:06:07:08:09:0a",
             false,
@@ -792,7 +793,7 @@ mod tests {
         // new packet in every iteration
         let start = Instant::now();
         for _ in 0..cnt {
-            let p = Packet::create_tcp_packet(
+            let p = utils::create_tcp_packet(
                 "00:11:11:11:11:11",
                 "00:06:07:08:09:0a",
                 false,
