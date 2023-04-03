@@ -105,6 +105,8 @@
 
 pub mod headers;
 pub mod packet;
+pub mod parse;
+pub mod types;
 pub mod utils;
 
 use headers::*;
@@ -118,6 +120,13 @@ pub struct Packet {
     hdrs: Vec<Box<dyn Header>>,
     hdrlen: usize,
     pktlen: usize,
+}
+
+/// Structure used to hold an ordered list of header slices
+pub struct PacketSlice<'a> {
+    hdrs: Vec<Box<dyn Header + 'a>>,
+    hdrlen: usize,
+    pub pktlen: usize,
 }
 
 #[cfg(feature = "python-module")]

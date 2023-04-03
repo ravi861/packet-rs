@@ -1,5 +1,5 @@
 use crate::headers::*;
-use crate::packet::*;
+use crate::types::*;
 use crate::Packet;
 
 // #[cfg(feature = "python-module")]
@@ -308,9 +308,9 @@ pub fn create_ipv4ip_packet(
     let ipkt_vec = inner_pkt.to_vec();
     let pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + ipkt_vec.len();
 
-    let ip_proto = match ipkt_vec[0] >> 4 & 0xf {
-        IPV4_VERSION => IP_PROTOCOL_IPIP,
-        IPV6_VERSION => IP_PROTOCOL_IPV6,
+    let ip_proto = match IpType::from_u8(ipkt_vec[0] >> 4 & 0xf as u8) {
+        Some(IpType::V4) => IP_PROTOCOL_IPIP,
+        Some(IpType::V6) => IP_PROTOCOL_IPV6,
         _ => IP_PROTOCOL_IPIP,
     };
     let mut pkt = create_ipv4_packet(
@@ -350,9 +350,9 @@ pub fn create_ipv6ip_packet(
     let ipkt_vec = inner_pkt.to_vec();
     let pktlen = ETHERNET_HDR_LEN + IPV6_HDR_LEN + ipkt_vec.len();
 
-    let ip_next_hdr = match ipkt_vec[0] >> 4 & 0xf {
-        IPV4_VERSION => IP_PROTOCOL_IPIP,
-        IPV6_VERSION => IP_PROTOCOL_IPV6,
+    let ip_next_hdr = match IpType::from_u8(ipkt_vec[0] >> 4 & 0xf as u8) {
+        Some(IpType::V4) => IP_PROTOCOL_IPIP,
+        Some(IpType::V6) => IP_PROTOCOL_IPV6,
         _ => IP_PROTOCOL_IPIP,
     };
     let mut pkt = create_ipv6_packet(
@@ -928,9 +928,9 @@ fn parse_mpls(pkt: &mut Packet, arr: &[u8]) {
 fn parse_mpls_bos(pkt: &mut Packet, arr: &[u8]) {
     let mpls = MPLS::from(arr[0..MPLS::size()].to_vec());
     pkt.push(mpls);
-    match arr[MPLS::size()] >> 4 & 0xf {
-        IPV4_VERSION => parse_ipv4(pkt, &arr[MPLS::size()..]),
-        IPV6_VERSION => parse_ipv6(pkt, &arr[MPLS::size()..]),
+    match IpType::from_u8(arr[MPLS::size()] >> 4 & 0xf) {
+        Some(IpType::V4) => parse_ipv4(pkt, &arr[MPLS::size()..]),
+        Some(IpType::V6) => parse_ipv6(pkt, &arr[MPLS::size()..]),
         _ => parse_ethernet(pkt, &arr[MPLS::size()..]),
     };
 }

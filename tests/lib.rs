@@ -2,6 +2,7 @@
 extern crate packet_rs;
 
 use packet_rs::headers::*;
+use packet_rs::types::*;
 use packet_rs::utils;
 
 use std::time::Instant;
@@ -13,6 +14,7 @@ mod tests {
 
     use super::*;
     use packet_rs::packet::*;
+    use packet_rs::parse;
     use packet_rs::Packet;
     use pcap::pcap_write;
 
@@ -695,10 +697,10 @@ mod tests {
             assert!(parsed.compare(&pkt));
         }
     }
-    #[test]
-    fn update_packet_test() {
-        let mut pkt = utils::create_tcp_packet(
-            "00:01:02:03:04:05",
+
+    fn test_tcp_packet() -> Packet {
+        utils::create_tcp_packet(
+            "00:11:11:11:11:11",
             "00:06:07:08:09:0a",
             false,
             10,
@@ -711,18 +713,22 @@ mod tests {
             115,
             0,
             Vec::new(),
-            80,
+            8888,
             9090,
             100,
             101,
+            5,
             0,
-            0,
-            1,
+            2,
             0,
             0,
             false,
             100,
-        );
+        )
+    }
+    #[test]
+    fn update_packet_test() {
+        let mut pkt = test_tcp_packet();
         pkt.show();
         let x: &mut Box<dyn Header> = &mut pkt["Ether"];
         let x: &mut Ether = x.into();
@@ -762,63 +768,12 @@ mod tests {
     #[test]
     fn pktgen_perf_test() {
         let cnt = 300000;
-        let pktlen: usize = 100;
-        let mut pkt = utils::create_tcp_packet(
-            "00:11:11:11:11:11",
-            "00:06:07:08:09:0a",
-            false,
-            10,
-            3,
-            5,
-            "10.10.10.1",
-            "11.11.11.1",
-            0,
-            64,
-            115,
-            0,
-            Vec::new(),
-            8888,
-            9090,
-            100,
-            101,
-            5,
-            0,
-            2,
-            0,
-            0,
-            false,
-            pktlen,
-        );
+        let mut pkt = test_tcp_packet();
 
         // new packet in every iteration
         let start = Instant::now();
         for _ in 0..cnt {
-            let p = utils::create_tcp_packet(
-                "00:11:11:11:11:11",
-                "00:06:07:08:09:0a",
-                false,
-                10,
-                3,
-                5,
-                "10.10.10.1",
-                "11.11.11.1",
-                0,
-                64,
-                115,
-                0,
-                Vec::new(),
-                8888,
-                9090,
-                100,
-                101,
-                5,
-                0,
-                2,
-                0,
-                0,
-                false,
-                pktlen,
-            );
+            let p = test_tcp_packet();
             p.to_vec();
             // p.show();
         }
@@ -843,5 +798,35 @@ mod tests {
             // p.show();
         }
         println!("Update+Clone {} packets : {:?}", cnt, start.elapsed());
+    }
+    #[test]
+    fn parse_test() {
+        let cnt = 300000;
+        let pkt = test_tcp_packet().to_vec();
+
+        let slice = pkt.as_slice();
+        // parse in every iteration
+        let start = Instant::now();
+        for _ in 0..cnt {
+            let p = utils::parse(&slice);
+            p.to_vec();
+        }
+        println!("{} packets parsed   : {:?}", cnt, start.elapsed());
+    }
+    #[test]
+    fn parse_slice_test() {
+        let cnt = 300000;
+        let pkt = test_tcp_packet().to_vec();
+
+        let slice = pkt.as_slice();
+        // let p = parse::parse(&slice);
+        // p.show();
+        // parse in every iteration
+        let start = Instant::now();
+        for _ in 0..cnt {
+            let p = parse::parse(&slice);
+            p.to_vec();
+        }
+        println!("{} packets parsed   : {:?}", cnt, start.elapsed());
     }
 }

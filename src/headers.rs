@@ -21,6 +21,8 @@ pub trait Header: Send {
     fn show(&self);
     /// Return the header as a vector copy
     fn to_vec(&self) -> Vec<u8>;
+    /// Return the header as a slice
+    fn as_slice(&self) -> &[u8];
     /// Clone the header
     fn clone(&self) -> Box<dyn Header>;
     /// Consume the header as owned
@@ -143,6 +145,127 @@ macro_rules! make_header {
         $x:expr
     ) => {
         paste! {
+            pub struct [<$name Slice>]<'a> {
+                slice: &'a [u8]
+            }
+            impl <'a>[<$name Slice>]<'a> {
+                pub fn from_slice(slice: &'a[u8]) -> [<$name Slice>]<'a> {
+                    //check length
+                    // use crate::ReadError::*;
+                    // if slice.len() < $name::size() {
+                        // return Err(UnexpectedEndOfSlice(Ethernet2Header::SERIALIZED_SIZE));
+                    // }
+
+                    //all done
+                    [<$name Slice>] {
+                        // guaranteed to be atleast min size after above check
+                        slice: unsafe {
+                            std::slice::from_raw_parts(
+                                slice.as_ptr(),
+                                $name::size()
+                            )
+                        }
+                    }
+                }
+                $(
+                pub fn $field(&self) -> u64 {
+                    use ::bitfield::BitRange;
+                    let raw_value: u64 = self.bit_range($end, $start);
+                    ::bitfield::Into::into(raw_value)
+                }
+                )*
+                pub const fn size() -> usize {
+                    $size
+                }
+                pub const fn len(&self) -> usize {
+                    $size
+                }
+                pub const fn name(&self) -> &str {
+                    stringify!($name)
+                }
+                pub fn clone(&self) -> $name {
+                    unimplemented!();
+                }
+                pub fn to_vec(&self) -> Vec<u8> {
+                    self.slice.to_vec()
+                }
+                pub fn as_slice(&self) -> &[u8] {
+                    self.slice
+                }
+                pub fn show(&self) -> () {
+                    println!("#### {:16} {} {}", stringify!($name), "Size  ", "Data");
+                    println!("-------------------------------------------");
+                    $(
+                    print!("{:20}: {:4} : ", stringify!($field), $end - $start + 1);
+                    if (($end - $start + 1) <= 8) {
+                        let x: u8 = self.bit_range($end, $start) as u8;
+                        print!("{:02x}", x);
+                    } else if (($end - $start + 1)%8 == 0){
+                        let d = ($end - $start + 1)/8;
+                        for i in ($start..(d*8 + $start)).step_by(8) {
+                            let x: u8 = self.bit_range(i + 7, i) as u8;
+                            print!("{:02x} ", x);
+                        }
+                    } else {
+                        let d = ($end - $start + 1)/8;
+                        let r = ($end - $start + 1)%8;
+                        for i in ($start..(d*8 + $start)).step_by(8) {
+                            let x: u8 = self.bit_range(i + 7, i) as u8;
+                            print!("{:02x} ", x);
+                        }
+                        let x: u8 = self.bit_range($end, $end - r) as u8;
+                        print!("{:02x}", x);
+                    }
+                    println!();
+                    )*
+                }
+            }
+            impl <'a>::bitfield::BitRange<u64> for [<$name Slice>]<'a> {
+                fn bit_range(&self, msb: usize, lsb: usize) -> u64 {
+                    let bit_len = ::bitfield::size_of::<u8>() * 8;
+                    let value_bit_len = ::bitfield::size_of::<u64>() * 8;
+                    let mut value: u64 = 0;
+                    for i in lsb..=msb {
+                        value <<= 1;
+                        let map = self.slice;
+                        value |= ((map[i / bit_len] >> (bit_len - i % bit_len - 1)) & 1) as u64;
+                    }
+                    value << (value_bit_len - (msb - lsb + 1)) >> (value_bit_len - (msb - lsb + 1))
+                }
+                fn set_bit_range(&mut self, _msb: usize, _lsb: usize, _value: u64) {
+                    ()
+                }
+            }
+            impl <'a>Header for [<$name Slice>]<'a> {
+                fn show(&self) {
+                    self.show();
+                }
+                fn to_vec(&self) -> Vec<u8> {
+                    self.to_vec()
+                }
+                fn as_slice(&self) -> &[u8] {
+                    self.as_slice()
+                }
+                fn clone(&self) -> Box<dyn Header> {
+                    Box::new(self.clone())
+                }
+                fn to_owned(self) -> Box<dyn Header> {
+                    //Box::new(self)
+                    unimplemented!();
+                }
+                fn name(&self) -> &str {
+                    self.name()
+                }
+                fn len(&self) -> usize {
+                    self.len()
+                }
+                fn as_any(&self) -> &dyn Any {
+                    unimplemented!();
+                }
+                fn as_any_mut(&mut self) -> &mut dyn Any {
+                    unimplemented!();
+                }
+            }
             #[pyclass]
             #[derive(FromPyObject)]
             pub struct $name {
@@ -217,26 +340,26 @@ macro_rules! make_header {
                     }
                 }
                 #[staticmethod]
-                pub fn size() -> usize {
+                pub const fn size() -> usize {
                     $size
                 }
-                pub fn len(&self) -> usize {
+                pub const fn len(&self) -> usize {
                     $size
                 }
-                pub fn name(&self) -> &str {
+                pub const fn name(&self) -> &str {
                     stringify!($name)
                 }
                 $(
                     #[staticmethod]
-                    pub fn [<$field _size>]() -> usize {
+                    pub const fn [<$field _size>]() -> usize {
                         $end - $start + 1
                     }
                     #[staticmethod]
-                    pub fn [<$field _lsb>]() -> usize {
+                    pub const fn [<$field _lsb>]() -> usize {
                         $start
                     }
                     #[staticmethod]
-                    pub fn [<$field _msb>]() -> usize {
+                    pub const fn [<$field _msb>]() -> usize {
                         $end
                     }
                 )*
@@ -336,6 +459,9 @@ macro_rules! make_header {
                 }
                 fn to_vec(&self) -> Vec<u8> {
                     self.to_vec()
+                }
+                fn as_slice(&self) -> &[u8] {
+                    todo!();
                 }
                 fn clone(&self) -> Box<dyn Header> {
                     Box::new(self.clone())

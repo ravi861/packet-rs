@@ -1,8 +1,8 @@
 use std::ops::{Add, Index, IndexMut};
 use std::{net::Ipv6Addr, str::FromStr};
 
-use crate::headers::*;
 use crate::Packet;
+use crate::{headers::*, types::*, PacketSlice};
 
 #[cfg(feature = "python-module")]
 use pyo3::prelude::*;
@@ -35,44 +35,6 @@ pub fn ipv4_checksum_verify(v: &[u8]) -> u16 {
     out
 }
 
-pub const IPV4_VERSION: u8 = 4;
-pub const IPV6_VERSION: u8 = 6;
-
-pub const IP_PROTOCOL_ICMP: u8 = 1;
-pub const IP_PROTOCOL_IPIP: u8 = 4;
-pub const IP_PROTOCOL_TCP: u8 = 6;
-pub const IP_PROTOCOL_UDP: u8 = 17;
-pub const IP_PROTOCOL_IPV6: u8 = 41;
-pub const IP_PROTOCOL_GRE: u8 = 47;
-pub const IP_PROTOCOL_ICMPV6: u8 = 58;
-
-pub const ETHERNET_HDR_LEN: usize = 14;
-pub const VLAN_HDR_LEN: usize = 4;
-pub const GRE_HDR_LEN: usize = 4;
-pub const IPV4_HDR_LEN: usize = 20;
-pub const IPV6_HDR_LEN: usize = 40;
-pub const UDP_HDR_LEN: usize = 8;
-pub const TCP_HDR_LEN: usize = 20;
-pub const VXLAN_HDR_LEN: usize = 8;
-pub const ERSPAN2_HDR_LEN: usize = 8;
-pub const ERSPAN3_HDR_LEN: usize = 12;
-
-pub const ETHERTYPE_IPV4: u16 = 0x0800;
-pub const ETHERTYPE_ARP: u16 = 0x0806;
-pub const ETHERTYPE_DOT1Q: u16 = 0x8100;
-pub const ETHERTYPE_IPV6: u16 = 0x86DD;
-pub const ETHERTYPE_MPLS: u16 = 0x8847;
-pub const ETHERTYPE_ERSPAN_II: u16 = 0x88be;
-pub const ETHERTYPE_ERSPAN_III: u16 = 0x22eb;
-
-pub const UDP_PORT_VXLAN: u16 = 4789;
-
-pub const MAC_LEN: usize = 6;
-pub const IPV4_LEN: usize = 4;
-pub const IPV6_LEN: usize = 16;
-
-pub const ERSPAN_II_VERSION: u8 = 1;
-pub const ERSPAN_III_VERSION: u8 = 2;
 #[doc(hidden)]
 pub trait ConvertToBytes {
     fn to_mac_bytes(&self) -> [u8; MAC_LEN];
@@ -443,7 +405,7 @@ impl Packet {
     ) -> ARP {
         let mut data: Vec<u8> = Vec::new();
         let hwtype: u16 = 1;
-        let ptype: u16 = ETHERTYPE_IPV4;
+        let ptype: u16 = EtherType::IPV4 as u16;
         data.extend_from_slice(&hwtype.to_be_bytes());
         data.extend_from_slice(&ptype.to_be_bytes());
         data.push(MAC_LEN as u8);
@@ -683,4 +645,46 @@ fn mac_1() {
     println!("{:02x?}", s.to_mac_bytes());
     let s = "ff:ff:ff:ff:ff:123";
     println!("{:02x?}", s.to_mac_bytes());
+}
+
+impl<'a> PacketSlice<'a> {
+    pub fn new(pktlen: usize) -> PacketSlice<'a> {
+        PacketSlice {
+            hdrs: Vec::new(),
+            hdrlen: 0,
+            pktlen,
+        }
+    }
+    pub fn push(&mut self, hdr: impl Header + 'a) {
+        self.hdrlen += hdr.len();
+        self.hdrs.insert(0, Box::new(hdr));
+    }
+    pub fn to_vec(&self) -> Vec<u8> {
+        let mut r = Vec::new();
+        for s in &self.hdrs {
+            r.extend_from_slice(&s.as_slice());
+        }
+        let mut payload: Vec<u8> = (0..(self.pktlen - self.hdrlen) as u16)
+            .map(|x| x as u8)
+            .collect();
+        r.append(&mut payload);
+        r
+    }
+    pub fn show(&self) -> () {
+        for s in &self.hdrs {
+            s.show();
+        }
+        let v = self.to_vec();
+        println!("\n#### raw {} bytes ####", v.len());
+        let mut x = 0;
+        for i in v.as_slice() {
+            print!("{:02x} ", i);
+            x += 1;
+            if x % 16 == 0 {
+                x = 0;
+                println!();
+            }
+        }
+        println!();
+    }
 }
