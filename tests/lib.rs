@@ -693,7 +693,7 @@ mod tests {
         pcap_write(&pkts.iter().map(|x| x.to_vec() as Vec<u8>).collect());
 
         for pkt in pkts {
-            let parsed = utils::parse(pkt.to_vec().as_slice());
+            let parsed = parse::full::parse(pkt.to_vec().as_slice());
             assert!(parsed.compare(&pkt));
         }
     }
@@ -808,7 +808,7 @@ mod tests {
         // parse in every iteration
         let start = Instant::now();
         for _ in 0..cnt {
-            let p = utils::parse(&slice);
+            let p = parse::full::parse(&slice);
             p.to_vec();
         }
         println!("{} packets parsed   : {:?}", cnt, start.elapsed());
@@ -819,12 +819,11 @@ mod tests {
         let pkt = test_tcp_packet().to_vec();
 
         let slice = pkt.as_slice();
-        // let p = parse::parse(&slice);
-        // p.show();
+
         // parse in every iteration
         let start = Instant::now();
         for _ in 0..cnt {
-            let p = parse::parse(&slice);
+            let p = parse::slice::parse(&slice);
             p.to_vec();
         }
         println!("{} packets parsed   : {:?}", cnt, start.elapsed());
