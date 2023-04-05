@@ -1,3 +1,25 @@
+//! # Headers module
+//!
+//! `headers` holds the pre-defined networking headers generated using `make_headers!` macro.
+//!
+//! The general recommendation is to use Owned headers when constructing new headers to send over the wire or perform any packet manipulation. Sliced headers can be used for read-only or display purposes.
+//!
+//! The `parse` module can be used to get a fully owned packet from the byte stream or a sliced packet for fast lookup.
+//!
+//! ## Owned header
+//!
+//! These headers own the data. Used within the `Packet` structure and to be used for packet construction. Each field in the header can be updated or read using the corresponding field API.
+//!
+//! Use `ARP::new()` or `ARP::from_vec()` to generate a header.
+//!
+//! ## Slice header
+//!
+//! These headers are references to packet slices. Used within the `PacketSlice` structure. This structure will be valid as long as the byte stream is in scope. Since they hold a reference, the structure is immutable. The usage semantics are exactly like the owned headers.
+//!
+//! Use `ARPSlice::from_slice()` to generate a sliced header.
+//!
+//!
+
 #[doc(hidden)]
 pub use ::bitfield::bitfield;
 #[doc(hidden)]
@@ -350,14 +372,17 @@ macro_rules! make_header {
                     stringify!($name)
                 }
                 $(
+                    #[doc(hidden)]
                     #[staticmethod]
                     pub const fn [<$field _size>]() -> usize {
                         $end - $start + 1
                     }
+                    #[doc(hidden)]
                     #[staticmethod]
                     pub const fn [<$field _lsb>]() -> usize {
                         $start
                     }
+                    #[doc(hidden)]
                     #[staticmethod]
                     pub const fn [<$field _msb>]() -> usize {
                         $end

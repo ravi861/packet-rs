@@ -104,7 +104,7 @@
 #![allow(dead_code)]
 
 pub mod headers;
-pub mod packet;
+mod packet;
 pub mod parse;
 mod types;
 pub mod utils;

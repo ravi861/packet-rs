@@ -10,51 +10,27 @@ mod pcap;
 
 const UDP_PORT_VXLAN: u16 = 4789;
 
+pub fn ipv4_checksum_verify(v: &[u8]) -> u16 {
+    let mut chksum: u32 = 0;
+    for i in (0..v.len()).step_by(2) {
+        let msb: u16 = (v[i] as u16) << 8;
+        chksum += msb as u32 | v[i + 1] as u32;
+    }
+    while chksum >> 16 != 0 {
+        chksum = (chksum >> 16) + chksum & 0xFFFF;
+    }
+    let out = !(chksum as u16);
+    out
+}
+
 #[cfg(test)]
 mod tests {
 
     use super::*;
-    use packet_rs::packet::*;
     use packet_rs::parse;
     use packet_rs::Packet;
     use pcap::pcap_write;
 
-    #[test]
-    fn set_get_octets_test() {
-        let mut dips = Vec::new();
-        dips.push(String::from("FFFF::FFFF").to_ipv6_bytes());
-        dips.push(String::from("7FFF::FFFF").to_ipv6_bytes());
-        dips.push(String::from("FFF7::FFFF").to_ipv6_bytes());
-        dips.push(String::from("FFFF::FFF7").to_ipv6_bytes());
-        dips.push(String::from("FFFF::7FFF").to_ipv6_bytes());
-        dips.push(String::from("1111::FFFF").to_ipv6_bytes());
-        dips.push(String::from("8888::FFFF").to_ipv6_bytes());
-        dips.push(String::from("FFFF::1111").to_ipv6_bytes());
-        dips.push(String::from("FFFF::8888").to_ipv6_bytes());
-        dips.push(String::from("8888::1111").to_ipv6_bytes());
-        dips.push(String::from("2001:3001:4001::FFFF").to_ipv6_bytes());
-        dips.push(String::from("FFFF:4001:3001::2001").to_ipv6_bytes());
-        dips.push(String::from("FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF").to_ipv6_bytes());
-        dips.push(String::from("1111:1111:1111:1111:1111:1111:1111:1111").to_ipv6_bytes());
-        dips.push(String::from("8888:8888:8888:8888:8888:8888:8888:8888").to_ipv6_bytes());
-        dips.push(String::from("FFFF:4001:3001:2001:2001:3001:4001:FFFF").to_ipv6_bytes());
-        dips.push(String::from("2001:3001:4001:FFFF:FFFF:4001:3001:2001").to_ipv6_bytes());
-        let sips = dips.clone();
-
-        let mut ipv6 = IPv6::new();
-        for a in dips {
-            ipv6.set_bytes(IPv6::dst_msb(), IPv6::dst_lsb(), &a);
-            let b = ipv6.bytes(IPv6::dst_msb(), IPv6::dst_lsb());
-            let b = b.as_slice();
-            assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 16);
-        }
-        for a in sips {
-            ipv6.set_bytes(IPv6::src_msb(), IPv6::src_lsb(), &a);
-            let b = ipv6.bytes(IPv6::src_msb(), IPv6::src_lsb());
-            let b = b.as_slice();
-            assert_eq!(a.iter().zip(b).filter(|&(a, b)| a == b).count(), 16);
-        }
-    }
     #[test]
     fn custom_header_test() {
         make_header!(
