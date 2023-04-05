@@ -321,7 +321,12 @@ impl Packet {
         let a = self.to_vec();
         let matching = a.iter().zip(b).filter(|&(a, b)| a == b).count();
         if self.pktlen != matching || b.len() != matching {
-            println!("this {} other {} count {}", self.pktlen, b.len(), matching);
+            println!(
+                "this {} other {}, matching upto {} bytes",
+                self.pktlen,
+                b.len(),
+                matching
+            );
             return false;
         }
         true
@@ -571,7 +576,7 @@ impl Packet {
     #[staticmethod]
     pub fn erspan2(vlan: u16, cos: u8, en: u8, t: u8, session_id: u16, index: u32) -> ERSPAN2 {
         let mut data: Vec<u8> = Vec::new();
-        let b1: u16 = (ERSPAN_II_VERSION as u16) << 12 | vlan;
+        let b1: u16 = (ErspanVersion::II as u16) << 12 | vlan;
         let b2: u16 = (cos as u16) << 13 | (en as u16) << 11 | (t as u16) << 10 | session_id;
         data.extend_from_slice(&b1.to_be_bytes());
         data.extend_from_slice(&b2.to_be_bytes());
@@ -590,7 +595,7 @@ impl Packet {
         ft_d_other: u16,
     ) -> ERSPAN3 {
         let mut data: Vec<u8> = Vec::new();
-        let b1: u16 = (ERSPAN_III_VERSION as u16) << 12 | vlan;
+        let b1: u16 = (ErspanVersion::III as u16) << 12 | vlan;
         let b2: u16 = (cos as u16) << 13 | (en as u16) << 11 | (t as u16) << 10 | session_id;
         data.extend_from_slice(&b1.to_be_bytes());
         data.extend_from_slice(&b2.to_be_bytes());

@@ -106,7 +106,7 @@
 pub mod headers;
 pub mod packet;
 pub mod parse;
-pub mod types;
+mod types;
 pub mod utils;
 
 use headers::*;

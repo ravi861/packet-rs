@@ -2,12 +2,13 @@
 extern crate packet_rs;
 
 use packet_rs::headers::*;
-use packet_rs::types::*;
 use packet_rs::utils;
 
 use std::time::Instant;
 
 mod pcap;
+
+const UDP_PORT_VXLAN: u16 = 4789;
 
 #[cfg(test)]
 mod tests {
@@ -694,6 +695,7 @@ mod tests {
 
         for pkt in pkts {
             let parsed = parse::full::parse(pkt.to_vec().as_slice());
+            // parsed.show();
             assert!(parsed.compare(&pkt));
         }
     }

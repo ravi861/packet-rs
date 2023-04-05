@@ -1,13 +1,34 @@
+use std::convert::TryFrom;
+
+pub const MAC_LEN: usize = 6;
+pub const IPV4_LEN: usize = 4;
+pub const IPV6_LEN: usize = 16;
+
+pub const ETHERNET_HDR_LEN: usize = 14;
+pub const VLAN_HDR_LEN: usize = 4;
+pub const GRE_HDR_LEN: usize = 4;
+pub const IPV4_HDR_LEN: usize = 20;
+pub const IPV6_HDR_LEN: usize = 40;
+pub const UDP_HDR_LEN: usize = 8;
+pub const TCP_HDR_LEN: usize = 20;
+pub const VXLAN_HDR_LEN: usize = 8;
+pub const ERSPAN2_HDR_LEN: usize = 8;
+pub const ERSPAN3_HDR_LEN: usize = 12;
+
+pub const UDP_PORT_VXLAN: u16 = 4789;
+
 pub enum IpType {
     V4 = 4,
     V6 = 6,
 }
-impl IpType {
-    pub fn from_u8(value: u8) -> Option<IpType> {
-        match value {
-            4 => Some(IpType::V4),
-            6 => Some(IpType::V6),
-            _ => None,
+impl TryFrom<u8> for IpType {
+    type Error = String;
+
+    fn try_from(v: u8) -> Result<Self, Self::Error> {
+        match v {
+            x if x == IpType::V4 as u8 => Ok(IpType::V4),
+            x if x == IpType::V6 as u8 => Ok(IpType::V6),
+            _ => Err(format!("Unsupported IpType {}", v)),
         }
     }
 }
@@ -21,24 +42,22 @@ pub enum IpProtocol {
     GRE = 47,
     ICMPV6 = 58,
 }
-pub const IP_PROTOCOL_ICMP: u8 = 1;
-pub const IP_PROTOCOL_IPIP: u8 = 4;
-pub const IP_PROTOCOL_TCP: u8 = 6;
-pub const IP_PROTOCOL_UDP: u8 = 17;
-pub const IP_PROTOCOL_IPV6: u8 = 41;
-pub const IP_PROTOCOL_GRE: u8 = 47;
-pub const IP_PROTOCOL_ICMPV6: u8 = 58;
+impl TryFrom<u8> for IpProtocol {
+    type Error = String;
 
-pub const ETHERNET_HDR_LEN: usize = 14;
-pub const VLAN_HDR_LEN: usize = 4;
-pub const GRE_HDR_LEN: usize = 4;
-pub const IPV4_HDR_LEN: usize = 20;
-pub const IPV6_HDR_LEN: usize = 40;
-pub const UDP_HDR_LEN: usize = 8;
-pub const TCP_HDR_LEN: usize = 20;
-pub const VXLAN_HDR_LEN: usize = 8;
-pub const ERSPAN2_HDR_LEN: usize = 8;
-pub const ERSPAN3_HDR_LEN: usize = 12;
+    fn try_from(v: u8) -> Result<Self, Self::Error> {
+        match v {
+            x if x == IpProtocol::ICMP as u8 => Ok(IpProtocol::ICMP),
+            x if x == IpProtocol::IPIP as u8 => Ok(IpProtocol::IPIP),
+            x if x == IpProtocol::TCP as u8 => Ok(IpProtocol::TCP),
+            x if x == IpProtocol::UDP as u8 => Ok(IpProtocol::UDP),
+            x if x == IpProtocol::IPV6 as u8 => Ok(IpProtocol::IPV6),
+            x if x == IpProtocol::GRE as u8 => Ok(IpProtocol::GRE),
+            x if x == IpProtocol::ICMPV6 as u8 => Ok(IpProtocol::ICMPV6),
+            _ => Err(format!("Unsupported IpProtocol {}", v)),
+        }
+    }
+}
 
 pub enum EtherType {
     IPV4 = 0x0800,
@@ -49,37 +68,35 @@ pub enum EtherType {
     ERSPANII = 0x88be,
     ERSPANIII = 0x22eb,
 }
-impl EtherType {
-    pub fn from_u16(value: u16) -> Option<EtherType> {
-        match value {
-            0x0800 => Some(EtherType::IPV4),
-            0x0806 => Some(EtherType::ARP),
-            0x8100 => Some(EtherType::DOT1Q),
-            0x86dd => Some(EtherType::IPV6),
-            0x8847 => Some(EtherType::MPLS),
-            0x88be => Some(EtherType::ERSPANII),
-            0x22eb => Some(EtherType::ERSPANIII),
-            _ => None,
+impl TryFrom<u16> for EtherType {
+    type Error = String;
+
+    fn try_from(v: u16) -> Result<Self, Self::Error> {
+        match v {
+            x if x == EtherType::IPV4 as u16 => Ok(EtherType::IPV4),
+            x if x == EtherType::ARP as u16 => Ok(EtherType::ARP),
+            x if x == EtherType::DOT1Q as u16 => Ok(EtherType::DOT1Q),
+            x if x == EtherType::IPV6 as u16 => Ok(EtherType::IPV6),
+            x if x == EtherType::MPLS as u16 => Ok(EtherType::MPLS),
+            x if x == EtherType::ERSPANII as u16 => Ok(EtherType::ERSPANII),
+            x if x == EtherType::ERSPANIII as u16 => Ok(EtherType::ERSPANIII),
+            _ => Err(format!("Unsupported EtherType {}", v)),
         }
     }
 }
-pub const ETHERTYPE_IPV4: u16 = 0x0800;
-pub const ETHERTYPE_ARP: u16 = 0x0806;
-pub const ETHERTYPE_DOT1Q: u16 = 0x8100;
-pub const ETHERTYPE_IPV6: u16 = 0x86DD;
-pub const ETHERTYPE_MPLS: u16 = 0x8847;
-pub const ETHERTYPE_ERSPAN_II: u16 = 0x88be;
-pub const ETHERTYPE_ERSPAN_III: u16 = 0x22eb;
-
-pub const UDP_PORT_VXLAN: u16 = 4789;
-
-pub const MAC_LEN: usize = 6;
-pub const IPV4_LEN: usize = 4;
-pub const IPV6_LEN: usize = 16;
 
 pub enum ErspanVersion {
     II = 1,
     III = 2,
 }
-pub const ERSPAN_II_VERSION: u8 = 1;
-pub const ERSPAN_III_VERSION: u8 = 2;
+impl TryFrom<u16> for ErspanVersion {
+    type Error = String;
+
+    fn try_from(v: u16) -> Result<Self, Self::Error> {
+        match v {
+            x if x == ErspanVersion::II as u16 => Ok(ErspanVersion::II),
+            x if x == ErspanVersion::III as u16 => Ok(ErspanVersion::III),
+            _ => Err(format!("Unsupported ErspanVersion {}", v)),
+        }
+    }
+}

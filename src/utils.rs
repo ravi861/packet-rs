@@ -13,7 +13,7 @@ pub fn create_eth_packet(
 ) -> Packet {
     let mut pkt = Packet::new(pktlen as usize);
     if vlan_enable {
-        pkt.push(Packet::ethernet(eth_dst, eth_src, ETHERTYPE_DOT1Q));
+        pkt.push(Packet::ethernet(eth_dst, eth_src, EtherType::DOT1Q as u16));
         pkt.push(Packet::vlan(vlan_pcp, 0, vlan_vid, etype));
     } else {
         pkt.push(Packet::ethernet(eth_dst, eth_src, etype));
@@ -40,7 +40,7 @@ pub fn create_arp_packet(
         vlan_enable,
         vlan_vid,
         vlan_pcp,
-        ETHERTYPE_ARP,
+        EtherType::ARP as u16,
         pktlen,
     );
     pkt.push(Packet::arp(
@@ -72,7 +72,7 @@ pub fn create_ipv4_packet(
         vlan_enable,
         vlan_vid,
         vlan_pcp,
-        ETHERTYPE_IPV4,
+        EtherType::IPV4 as u16,
         pktlen,
     );
     let mut ip_len = pktlen - ETHERNET_HDR_LEN as u16;
@@ -107,7 +107,7 @@ pub fn create_ipv6_packet(
         vlan_enable,
         vlan_vid,
         vlan_pcp,
-        ETHERTYPE_IPV6,
+        EtherType::IPV6 as u16,
         pktlen,
     );
     let mut ip_len = pktlen - ETHERNET_HDR_LEN as u16 - IPV6_HDR_LEN as u16;
@@ -163,7 +163,7 @@ pub fn create_tcp_packet(
         ip_ihl,
         ip_src,
         ip_dst,
-        IP_PROTOCOL_TCP,
+        IpProtocol::TCP as u8,
         ip_tos,
         ip_ttl,
         ip_id,
@@ -216,7 +216,7 @@ pub fn create_udp_packet(
         ip_ihl,
         ip_src,
         ip_dst,
-        IP_PROTOCOL_UDP,
+        IpProtocol::UDP as u8,
         ip_tos,
         ip_ttl,
         ip_id,
@@ -262,7 +262,7 @@ pub fn create_icmp_packet(
         ip_ihl,
         ip_src,
         ip_dst,
-        IP_PROTOCOL_ICMP,
+        IpProtocol::ICMP as u8,
         ip_tos,
         ip_ttl,
         ip_id,
@@ -294,10 +294,10 @@ pub fn create_ipv4ip_packet(
     let ipkt_vec = inner_pkt.to_vec();
     let pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + ipkt_vec.len();
 
-    let ip_proto = match IpType::from_u8(ipkt_vec[0] >> 4 & 0xf as u8) {
-        Some(IpType::V4) => IP_PROTOCOL_IPIP,
-        Some(IpType::V6) => IP_PROTOCOL_IPV6,
-        _ => IP_PROTOCOL_IPIP,
+    let ip_proto = match IpType::try_from(ipkt_vec[0] >> 4 & 0xf as u8) {
+        Ok(IpType::V4) => IpProtocol::IPIP,
+        Ok(IpType::V6) => IpProtocol::IPV6,
+        _ => IpProtocol::IPIP,
     };
     let mut pkt = create_ipv4_packet(
         eth_dst,
@@ -308,7 +308,7 @@ pub fn create_ipv4ip_packet(
         ip_ihl,
         ip_src,
         ip_dst,
-        ip_proto,
+        ip_proto as u8,
         ip_tos,
         ip_ttl,
         ip_id,
@@ -336,10 +336,10 @@ pub fn create_ipv6ip_packet(
     let ipkt_vec = inner_pkt.to_vec();
     let pktlen = ETHERNET_HDR_LEN + IPV6_HDR_LEN + ipkt_vec.len();
 
-    let ip_next_hdr = match IpType::from_u8(ipkt_vec[0] >> 4 & 0xf as u8) {
-        Some(IpType::V4) => IP_PROTOCOL_IPIP,
-        Some(IpType::V6) => IP_PROTOCOL_IPV6,
-        _ => IP_PROTOCOL_IPIP,
+    let ip_nxt_hdr = match IpType::try_from(ipkt_vec[0] >> 4 & 0xf as u8) {
+        Ok(IpType::V4) => IpProtocol::IPIP,
+        Ok(IpType::V6) => IpProtocol::IPV6,
+        _ => IpProtocol::IPIP,
     };
     let mut pkt = create_ipv6_packet(
         eth_dst,
@@ -349,7 +349,7 @@ pub fn create_ipv6ip_packet(
         vlan_pcp,
         ip_traffic_class,
         ip_flow_label,
-        ip_next_hdr,
+        ip_nxt_hdr as u8,
         ip_hop_limit,
         ip_src,
         ip_dst,
@@ -389,7 +389,7 @@ pub fn create_tcpv6_packet(
         vlan_pcp,
         ip_traffic_class,
         ip_flow_label,
-        IP_PROTOCOL_TCP,
+        IpProtocol::TCP as u8,
         ip_hop_limit,
         ip_src,
         ip_dst,
@@ -436,7 +436,7 @@ pub fn create_udpv6_packet(
         vlan_pcp,
         ip_traffic_class,
         ip_flow_label,
-        IP_PROTOCOL_UDP,
+        IpProtocol::UDP as u8,
         ip_hop_limit,
         ip_src,
         ip_dst,
@@ -477,7 +477,7 @@ pub fn create_icmpv6_packet(
         vlan_pcp,
         ip_traffic_class,
         ip_flow_label,
-        IP_PROTOCOL_ICMPV6,
+        IpProtocol::ICMPV6 as u8,
         ip_hop_limit,
         ip_src,
         ip_dst,
@@ -519,7 +519,7 @@ pub fn create_vxlan_packet(
         ip_ihl,
         ip_src,
         ip_dst,
-        IP_PROTOCOL_UDP,
+        IpProtocol::UDP as u8,
         ip_tos,
         ip_ttl,
         ip_id,
@@ -567,7 +567,7 @@ pub fn create_vxlanv6_packet(
         vlan_pcp,
         ip_traffic_class,
         ip_flow_label,
-        IP_PROTOCOL_UDP,
+        IpProtocol::UDP as u8,
         ip_hop_limit,
         ip_src,
         ip_dst,
@@ -634,8 +634,8 @@ pub fn create_gre_packet(
             let ipkt_vec = p.to_vec();
             pktlen += ipkt_vec.len();
             match ipkt_vec[0] >> 4 & 0xf {
-                4 => ETHERTYPE_IPV4,
-                6 => ETHERTYPE_IPV6,
+                4 => EtherType::IPV4 as u16,
+                6 => EtherType::IPV6 as u16,
                 _ => 0,
             }
         }
@@ -651,7 +651,7 @@ pub fn create_gre_packet(
         ip_ihl,
         ip_src,
         ip_dst,
-        IP_PROTOCOL_GRE,
+        IpProtocol::GRE as u8,
         ip_tos,
         ip_ttl,
         ip_id,
@@ -732,7 +732,7 @@ pub fn create_erspan_2_packet(
         ip_ihl,
         ip_src,
         ip_dst,
-        IP_PROTOCOL_GRE,
+        IpProtocol::GRE as u8,
         ip_tos,
         ip_ttl,
         ip_id,
@@ -741,7 +741,7 @@ pub fn create_erspan_2_packet(
         pktlen as u16,
     );
     let mut gre = GRE::new();
-    gre.set_proto(ETHERTYPE_ERSPAN_II as u64);
+    gre.set_proto(EtherType::ERSPANII as u64);
     gre.set_seqnum_present(gre_seqnum as u64);
     pkt.push(gre);
 
@@ -816,7 +816,7 @@ pub fn create_erspan_3_packet(
         ip_ihl,
         ip_src,
         ip_dst,
-        IP_PROTOCOL_GRE,
+        IpProtocol::GRE as u8,
         ip_tos,
         ip_ttl,
         ip_id,
@@ -825,7 +825,7 @@ pub fn create_erspan_3_packet(
         pktlen as u16,
     );
     let mut gre = GRE::new();
-    gre.set_proto(ETHERTYPE_ERSPAN_III as u64);
+    gre.set_proto(EtherType::ERSPANIII as u64);
     gre.set_seqnum_present(gre_seqnum as u64);
     pkt.push(gre);
 

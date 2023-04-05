@@ -33,27 +33,27 @@ pub mod full {
     #[inline]
     fn parse_ethernet(pkt: &mut Packet, arr: &[u8]) {
         let eth = Ether::from(arr[0..Ether::size()].to_vec());
-        let etype = eth.etype() as u16;
+        let etype = EtherType::try_from(eth.etype() as u16);
         pkt.push(eth);
         match etype {
-            ETHERTYPE_DOT1Q => parse_vlan(pkt, &arr[Ether::size()..]),
-            ETHERTYPE_ARP => parse_arp(pkt, &arr[Ether::size()..]),
-            ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[Ether::size()..]),
-            ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[Ether::size()..]),
-            ETHERTYPE_MPLS => parse_mpls(pkt, &arr[Ether::size()..]),
+            Ok(EtherType::DOT1Q) => parse_vlan(pkt, &arr[Ether::size()..]),
+            Ok(EtherType::ARP) => parse_arp(pkt, &arr[Ether::size()..]),
+            Ok(EtherType::IPV4) => parse_ipv4(pkt, &arr[Ether::size()..]),
+            Ok(EtherType::IPV6) => parse_ipv6(pkt, &arr[Ether::size()..]),
+            Ok(EtherType::MPLS) => parse_mpls(pkt, &arr[Ether::size()..]),
             _ => accept(),
         }
     }
     fn parse_vlan(pkt: &mut Packet, arr: &[u8]) {
         let vlan = Vlan::from(arr[0..Vlan::size()].to_vec());
-        let etype = vlan.etype() as u16;
+        let etype = EtherType::try_from(vlan.etype() as u16);
         pkt.push(vlan);
         match etype {
-            ETHERTYPE_DOT1Q => parse_vlan(pkt, &arr[Vlan::size()..]),
-            ETHERTYPE_ARP => parse_arp(pkt, &arr[Vlan::size()..]),
-            ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[Vlan::size()..]),
-            ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[Vlan::size()..]),
-            ETHERTYPE_MPLS => parse_mpls(pkt, &arr[Vlan::size()..]),
+            Ok(EtherType::DOT1Q) => parse_vlan(pkt, &arr[Vlan::size()..]),
+            Ok(EtherType::ARP) => parse_arp(pkt, &arr[Vlan::size()..]),
+            Ok(EtherType::IPV4) => parse_ipv4(pkt, &arr[Vlan::size()..]),
+            Ok(EtherType::IPV6) => parse_ipv6(pkt, &arr[Vlan::size()..]),
+            Ok(EtherType::MPLS) => parse_mpls(pkt, &arr[Vlan::size()..]),
             _ => accept(),
         }
     }
@@ -70,44 +70,44 @@ pub mod full {
     fn parse_mpls_bos(pkt: &mut Packet, arr: &[u8]) {
         let mpls = MPLS::from(arr[0..MPLS::size()].to_vec());
         pkt.push(mpls);
-        match IpType::from_u8(arr[MPLS::size()] >> 4 & 0xf) {
-            Some(IpType::V4) => parse_ipv4(pkt, &arr[MPLS::size()..]),
-            Some(IpType::V6) => parse_ipv6(pkt, &arr[MPLS::size()..]),
+        match IpType::try_from(arr[MPLS::size()] >> 4 & 0xf) {
+            Ok(IpType::V4) => parse_ipv4(pkt, &arr[MPLS::size()..]),
+            Ok(IpType::V6) => parse_ipv6(pkt, &arr[MPLS::size()..]),
             _ => parse_ethernet(pkt, &arr[MPLS::size()..]),
         };
     }
     #[inline]
     fn parse_ipv4(pkt: &mut Packet, arr: &[u8]) {
         let ipv4 = IPv4::from(arr[0..IPv4::size()].to_vec());
-        let proto = ipv4.protocol() as u8;
+        let proto = IpProtocol::try_from(ipv4.protocol() as u8);
         pkt.push(ipv4);
-        match proto as u8 {
-            IP_PROTOCOL_ICMP => parse_icmp(pkt, &arr[IPv4::size()..]),
-            IP_PROTOCOL_IPIP => parse_ipv4(pkt, &arr[IPv4::size()..]),
-            IP_PROTOCOL_TCP => parse_tcp(pkt, &arr[IPv4::size()..]),
-            IP_PROTOCOL_UDP => parse_udp(pkt, &arr[IPv4::size()..]),
-            IP_PROTOCOL_IPV6 => parse_ipv6(pkt, &arr[IPv4::size()..]),
-            IP_PROTOCOL_GRE => parse_gre(pkt, &arr[IPv4::size()..]),
+        match proto {
+            Ok(IpProtocol::ICMP) => parse_icmp(pkt, &arr[IPv4::size()..]),
+            Ok(IpProtocol::IPIP) => parse_ipv4(pkt, &arr[IPv4::size()..]),
+            Ok(IpProtocol::TCP) => parse_tcp(pkt, &arr[IPv4::size()..]),
+            Ok(IpProtocol::UDP) => parse_udp(pkt, &arr[IPv4::size()..]),
+            Ok(IpProtocol::IPV6) => parse_ipv6(pkt, &arr[IPv4::size()..]),
+            Ok(IpProtocol::GRE) => parse_gre(pkt, &arr[IPv4::size()..]),
             _ => accept(),
         }
     }
     fn parse_ipv6(pkt: &mut Packet, arr: &[u8]) {
         let ipv6 = IPv6::from(arr[0..IPv6::size()].to_vec());
-        let next_hdr = ipv6.next_hdr() as u8;
+        let next_hdr = IpProtocol::try_from(ipv6.next_hdr() as u8);
         pkt.push(ipv6);
-        match next_hdr as u8 {
-            IP_PROTOCOL_ICMPV6 => parse_icmp(pkt, &arr[IPv6::size()..]),
-            IP_PROTOCOL_IPIP => parse_ipv4(pkt, &arr[IPv6::size()..]),
-            IP_PROTOCOL_TCP => parse_tcp(pkt, &arr[IPv6::size()..]),
-            IP_PROTOCOL_UDP => parse_udp(pkt, &arr[IPv6::size()..]),
-            IP_PROTOCOL_IPV6 => parse_ipv6(pkt, &arr[IPv6::size()..]),
-            IP_PROTOCOL_GRE => parse_gre(pkt, &arr[IPv6::size()..]),
+        match next_hdr {
+            Ok(IpProtocol::ICMPV6) => parse_icmp(pkt, &arr[IPv6::size()..]),
+            Ok(IpProtocol::IPIP) => parse_ipv4(pkt, &arr[IPv6::size()..]),
+            Ok(IpProtocol::TCP) => parse_tcp(pkt, &arr[IPv6::size()..]),
+            Ok(IpProtocol::UDP) => parse_udp(pkt, &arr[IPv6::size()..]),
+            Ok(IpProtocol::IPV6) => parse_ipv6(pkt, &arr[IPv6::size()..]),
+            Ok(IpProtocol::GRE) => parse_gre(pkt, &arr[IPv6::size()..]),
             _ => accept(),
         }
     }
     fn parse_gre(pkt: &mut Packet, arr: &[u8]) {
         let gre = GRE::from(arr[0..GRE::size()].to_vec());
-        let proto = gre.proto() as u16;
+        let proto = EtherType::try_from(gre.proto() as u16);
         let chksum_present = gre.chksum_present();
         let seqnum_present = gre.seqnum_present();
         let key_present = gre.key_present();
@@ -131,10 +131,10 @@ pub mod full {
             offset += GRESequenceNum::size();
         }
         match proto {
-            ETHERTYPE_IPV4 => parse_ipv4(pkt, &arr[offset..]),
-            ETHERTYPE_IPV6 => parse_ipv6(pkt, &arr[offset..]),
-            ETHERTYPE_ERSPAN_II => parse_erspan2(pkt, &arr[offset..]),
-            ETHERTYPE_ERSPAN_III => parse_erspan3(pkt, &arr[offset..]),
+            Ok(EtherType::IPV4) => parse_ipv4(pkt, &arr[offset..]),
+            Ok(EtherType::IPV6) => parse_ipv6(pkt, &arr[offset..]),
+            Ok(EtherType::ERSPANII) => parse_erspan2(pkt, &arr[offset..]),
+            Ok(EtherType::ERSPANIII) => parse_erspan3(pkt, &arr[offset..]),
             _ => accept(),
         }
     }
@@ -204,13 +204,13 @@ pub mod slice {
     #[inline]
     fn parse_ethernet<'a>(arr: &'a [u8]) -> PacketSlice<'a> {
         let eth = EtherSlice::from_slice(&arr[0..Ether::size()]);
-        let etype = eth.etype() as u16;
+        let etype = EtherType::try_from(eth.etype() as u16);
         let mut p = match etype {
-            ETHERTYPE_DOT1Q => parse_vlan(&arr[Ether::size()..]),
-            ETHERTYPE_ARP => parse_arp(&arr[Ether::size()..]),
-            ETHERTYPE_IPV4 => parse_ipv4(&arr[Ether::size()..]),
-            ETHERTYPE_IPV6 => parse_ipv6(&arr[Ether::size()..]),
-            ETHERTYPE_MPLS => parse_mpls(&arr[Ether::size()..]),
+            Ok(EtherType::DOT1Q) => parse_vlan(&arr[Ether::size()..]),
+            Ok(EtherType::ARP) => parse_arp(&arr[Ether::size()..]),
+            Ok(EtherType::IPV4) => parse_ipv4(&arr[Ether::size()..]),
+            Ok(EtherType::IPV6) => parse_ipv6(&arr[Ether::size()..]),
+            Ok(EtherType::MPLS) => parse_mpls(&arr[Ether::size()..]),
             _ => accept(&arr[Ether::size()..]),
         };
         p.push(eth);
@@ -229,9 +229,9 @@ pub mod slice {
     #[inline]
     fn parse_mpls_bos<'a>(arr: &'a [u8]) -> PacketSlice<'a> {
         let mpls = MPLS::from(arr[0..MPLS::size()].to_vec());
-        let mut p = match IpType::from_u8(arr[MPLS::size()] >> 4 & 0xf) {
-            Some(IpType::V4) => parse_ipv4(&arr[MPLS::size()..]),
-            Some(IpType::V6) => parse_ipv6(&arr[MPLS::size()..]),
+        let mut p = match IpType::try_from(arr[MPLS::size()] >> 4 & 0xf) {
+            Ok(IpType::V4) => parse_ipv4(&arr[MPLS::size()..]),
+            Ok(IpType::V6) => parse_ipv6(&arr[MPLS::size()..]),
             _ => parse_ethernet(&arr[MPLS::size()..]),
         };
         p.push(mpls);
@@ -240,13 +240,13 @@ pub mod slice {
     #[inline]
     fn parse_vlan<'a>(arr: &'a [u8]) -> PacketSlice<'a> {
         let vlan = VlanSlice::from_slice(&arr[0..Vlan::size()]);
-        let etype = vlan.etype() as u16;
+        let etype = EtherType::try_from(vlan.etype() as u16);
         let mut p = match etype {
-            ETHERTYPE_DOT1Q => parse_vlan(&arr[Vlan::size()..]),
-            ETHERTYPE_ARP => parse_arp(&arr[Vlan::size()..]),
-            ETHERTYPE_IPV4 => parse_ipv4(&arr[Vlan::size()..]),
-            ETHERTYPE_IPV6 => parse_ipv6(&arr[Vlan::size()..]),
-            ETHERTYPE_MPLS => parse_mpls(&arr[Vlan::size()..]),
+            Ok(EtherType::DOT1Q) => parse_vlan(&arr[Vlan::size()..]),
+            Ok(EtherType::ARP) => parse_arp(&arr[Vlan::size()..]),
+            Ok(EtherType::IPV4) => parse_ipv4(&arr[Vlan::size()..]),
+            Ok(EtherType::IPV6) => parse_ipv6(&arr[Vlan::size()..]),
+            Ok(EtherType::MPLS) => parse_mpls(&arr[Vlan::size()..]),
             _ => accept(&arr[Vlan::size()..]),
         };
         p.push(vlan);
@@ -255,13 +255,13 @@ pub mod slice {
     #[inline]
     fn parse_ipv4<'a>(arr: &'a [u8]) -> PacketSlice<'a> {
         let ipv4 = IPv4Slice::from_slice(&arr[0..IPv4::size()]);
-        let proto = ipv4.protocol() as u8;
-        let mut p = match proto as u8 {
-            IP_PROTOCOL_ICMP => parse_icmp(&arr[IPv4::size()..]),
-            IP_PROTOCOL_IPIP => parse_ipv4(&arr[IPv4::size()..]),
-            IP_PROTOCOL_TCP => parse_tcp(&arr[IPv4::size()..]),
-            IP_PROTOCOL_UDP => parse_udp(&arr[IPv4::size()..]),
-            IP_PROTOCOL_IPV6 => parse_ipv6(&arr[IPv4::size()..]),
+        let proto = IpProtocol::try_from(ipv4.protocol() as u8);
+        let mut p = match proto {
+            Ok(IpProtocol::ICMP) => parse_icmp(&arr[IPv4::size()..]),
+            Ok(IpProtocol::IPIP) => parse_ipv4(&arr[IPv4::size()..]),
+            Ok(IpProtocol::TCP) => parse_tcp(&arr[IPv4::size()..]),
+            Ok(IpProtocol::UDP) => parse_udp(&arr[IPv4::size()..]),
+            Ok(IpProtocol::IPV6) => parse_ipv6(&arr[IPv4::size()..]),
             //IP_PROTOCOL_GRE => parse_gre(pkt, &arr[IPv4::size()..]),
             _ => accept(&arr[IPv4::size()..]),
         };
@@ -271,13 +271,13 @@ pub mod slice {
     #[inline]
     fn parse_ipv6<'a>(arr: &'a [u8]) -> PacketSlice<'a> {
         let ipv6 = IPv6Slice::from_slice(&arr[0..IPv6::size()]);
-        let next_hdr = ipv6.next_hdr() as u8;
-        let mut p = match next_hdr as u8 {
-            IP_PROTOCOL_ICMPV6 => parse_icmp(&arr[IPv6::size()..]),
-            IP_PROTOCOL_IPIP => parse_ipv4(&arr[IPv6::size()..]),
-            IP_PROTOCOL_TCP => parse_tcp(&arr[IPv6::size()..]),
-            IP_PROTOCOL_UDP => parse_udp(&arr[IPv6::size()..]),
-            IP_PROTOCOL_IPV6 => parse_ipv6(&arr[IPv6::size()..]),
+        let next_hdr = IpProtocol::try_from(ipv6.next_hdr() as u8);
+        let mut p = match next_hdr {
+            Ok(IpProtocol::ICMPV6) => parse_icmp(&arr[IPv6::size()..]),
+            Ok(IpProtocol::IPIP) => parse_ipv4(&arr[IPv6::size()..]),
+            Ok(IpProtocol::TCP) => parse_tcp(&arr[IPv6::size()..]),
+            Ok(IpProtocol::UDP) => parse_udp(&arr[IPv6::size()..]),
+            Ok(IpProtocol::IPV6) => parse_ipv6(&arr[IPv6::size()..]),
             //IP_PROTOCOL_GRE => parse_gre(&arr[IPv6::size()..]),
             _ => accept(&arr[IPv6::size()..]),
         };
