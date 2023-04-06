@@ -1,8 +1,7 @@
 use std::ops::{Add, Index, IndexMut};
 use std::{net::Ipv6Addr, str::FromStr};
 
-use crate::Packet;
-use crate::{headers::*, types::*, PacketSlice};
+use crate::{headers::*, types::*, Packet, PacketSlice};
 
 #[cfg(feature = "python-module")]
 use pyo3::prelude::*;
