@@ -55,6 +55,9 @@ pub trait Header: Send {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
+#[cfg(not(feature = "python-module"))]
+use pyo3_nullify::*;
+
 #[cfg(feature = "python-module")]
 use pyo3::prelude::*;
 

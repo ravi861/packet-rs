@@ -3,6 +3,9 @@ use std::{net::Ipv6Addr, str::FromStr};
 
 use crate::{headers::*, types::*, Packet, PacketSlice};
 
+#[cfg(not(feature = "python-module"))]
+use pyo3_nullify::*;
+
 #[cfg(feature = "python-module")]
 use pyo3::prelude::*;
 
@@ -233,6 +236,7 @@ impl Packet {
         x.push_boxed_header(y);
         Ok(x)
     }
+    #[cfg(feature = "python-module")]
     fn __getitem1__(slf: &PyCell<Self>, index: String) -> PyObject {
         let gil = ::pyo3::Python::acquire_gil();
         let mut pkt = slf.try_borrow_mut().unwrap();

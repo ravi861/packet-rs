@@ -16,6 +16,7 @@ exclude = [".github", ".gitignore", "*.pcap", "*.log", "tags"]
 bitfield = "0.13.2"
 paste = "1.0.5"
 pyo3 = { version = "0.16.5", optional = true }
+pyo3_nullify = { path = "pyo3_nullify" }
 
 [lib]
 name = "packet_rs"
@@ -23,7 +24,13 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 python-module = ["pyo3/extension-module"]
-default = ["python-module"]
+default = []
 
 [[example]]
 name = "pkt"
+
+[profile.release]
+strip = true
+codegen-units = 1
+lto = true
+panic = "abort"

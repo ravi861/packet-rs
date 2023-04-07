@@ -111,6 +111,9 @@ pub mod utils;
 
 use headers::*;
 
+#[cfg(not(feature = "python-module"))]
+use pyo3_nullify::*;
+
 #[cfg(feature = "python-module")]
 use pyo3::prelude::*;
 
