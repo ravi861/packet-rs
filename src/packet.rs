@@ -9,22 +9,6 @@ use pyo3_nullify::*;
 #[cfg(feature = "python-module")]
 use pyo3::prelude::*;
 
-fn ipv4_checksum(v: &[u8]) -> u16 {
-    let mut chksum: u32 = 0;
-    for i in (0..v.len()).step_by(2) {
-        if i == 10 {
-            continue;
-        }
-        let msb: u16 = (v[i] as u16) << 8;
-        chksum += msb as u32 | v[i + 1] as u32;
-    }
-    while chksum >> 16 != 0 {
-        chksum = (chksum >> 16) + chksum & 0xFFFF;
-    }
-    let out = !(chksum as u16);
-    out
-}
-
 #[doc(hidden)]
 pub trait ConvertToBytes {
     fn to_mac_bytes(&self) -> [u8; MAC_LEN];
@@ -107,12 +91,27 @@ impl Clone for Packet {
 }
 
 impl Packet {
-    /// Push a header into the packet from the stack
+    pub fn ipv4_checksum(v: &[u8]) -> u16 {
+        let mut chksum: u32 = 0;
+        for i in (0..v.len()).step_by(2) {
+            if i == 10 {
+                continue;
+            }
+            let msb: u16 = (v[i] as u16) << 8;
+            chksum += msb as u32 | v[i + 1] as u32;
+        }
+        while chksum >> 16 != 0 {
+            chksum = (chksum >> 16) + chksum & 0xFFFF;
+        }
+        let out = !(chksum as u16);
+        out
+    }
+    /// Append a header into the packet from the stack
     /// # Example
     ///
     /// ```
     /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
-    /// let mut pkt = Packet::new(100);
+    /// let mut pkt = Packet::new();
     /// let eth = Ether::new();
     /// pkt.push(eth);
     /// ```
@@ -120,25 +119,38 @@ impl Packet {
         self.hdrlen += hdr.len();
         self.hdrs.push(hdr.to_owned());
     }
+    /// Insert a header into the packet from the stack
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
+    /// let mut pkt = Packet::new();
+    /// let eth = Ether::new();
+    /// pkt.insert(eth);
+    /// ```
+    pub fn insert(&mut self, hdr: impl Header) {
+        self.hdrlen += hdr.len();
+        self.hdrs.insert(0, hdr.to_owned());
+    }
     /// Push a header into the packet from the heap
     /// # Example
     ///
     /// ```
     /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
-    /// let mut pkt = Packet::new(100);
+    /// let mut pkt = Packet::new();
     /// let eth = Box::new(Ether::new());
     /// pkt.push_boxed_header(eth);
     /// ```
     pub fn push_boxed_header(&mut self, hdr: Box<dyn Header>) {
         self.hdrlen += hdr.len();
-        self.hdrs.push(hdr);
+        self.hdrs.insert(0, hdr);
     }
     /// Pop a header at the top of the packet
     /// # Example
     ///
     /// ```
     /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
-    /// let mut pkt = Packet::new(100);
+    /// let mut pkt = Packet::new();
     /// pkt.push(Ether::new());
     /// pkt.push(Vlan::new());
     /// // vlan header is now popped from the packet
@@ -148,7 +160,6 @@ impl Packet {
         if self.hdrs.len() != 0 {
             let last = self.hdrs.pop().unwrap();
             self.hdrlen -= last.len();
-            self.pktlen -= last.len();
         }
     }
     /// Remove a header with an index
@@ -156,7 +167,7 @@ impl Packet {
     ///
     /// ```
     /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
-    /// let mut pkt = Packet::new(100);
+    /// let mut pkt = Packet::new();
     /// pkt.push(Ether::new());
     /// pkt.push(Vlan::new());
     /// pkt.push(IPv4::new());
@@ -167,15 +178,30 @@ impl Packet {
         if self.hdrs.len() != 0 && index < self.hdrs.len() {
             let remove = self.hdrs.remove(index);
             self.hdrlen -= remove.len();
-            self.pktlen -= remove.len();
         }
+    }
+    /// Set the payload for the packet
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
+    /// let mut pkt = Packet::new();
+    /// pkt.push(Ether::new());
+    /// pkt.push(Vlan::new());
+    /// pkt.push(IPv4::new());
+    /// // vupdate the payload
+    /// let pld: Vec<u8> = Vec::from([1, 2, 3, 4, 5]);
+    /// pkt.set_payload(pld.as_slice());
+    /// ```
+    pub fn set_payload(&mut self, payload: &[u8]) -> () {
+        self.payload = Vec::from(payload);
     }
     /// Get immutable access to a header from the packet
     /// # Example
     ///
     /// ```
     /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
-    /// let mut pkt = Packet::new(100);
+    /// let mut pkt = Packet::new();
     /// pkt.push(Ether::new());
     /// // use this API for immutable access
     /// let x: &Ether = pkt.get_header("Ether").unwrap();
@@ -203,7 +229,7 @@ impl Packet {
     ///
     /// ```
     /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
-    /// let mut pkt = Packet::new(100);
+    /// let mut pkt = Packet::new();
     /// pkt.push(Ether::new());
     /// // use this API for mutable access
     /// let x: &mut Ether = pkt.get_header_mut("Ether").unwrap();
@@ -266,19 +292,19 @@ impl Packet {
         x.replace(&value);
     }
     #[new]
-    /// Create a new Packet instance of size "pktlen". Length does not change on pushing or popping headers
+    /// Create a new Packet instance.
     /// # Example
     ///
     /// ```
     /// # #[macro_use] extern crate packet_rs; use packet_rs::Packet;
-    /// let pkt = Packet::new(100);
+    /// let pkt = Packet::new();
     /// pkt.show();
     /// ```
-    pub fn new(pktlen: usize) -> Packet {
+    pub fn new() -> Packet {
         Packet {
             hdrs: Vec::new(),
             hdrlen: 0,
-            pktlen,
+            payload: Vec::new(),
         }
     }
     /// Compare this packet with another Packet
@@ -286,8 +312,8 @@ impl Packet {
     ///
     /// ```
     /// # #[macro_use] extern crate packet_rs; use packet_rs::Packet;
-    /// let pkt = Packet::new(100);
-    /// let other = Packet::new(100);
+    /// let pkt = Packet::new();
+    /// let other = Packet::new();
     /// pkt.compare(&other);
     /// ```
     pub fn compare(&self, pkt: &Packet) -> bool {
@@ -300,21 +326,22 @@ impl Packet {
     ///
     /// ```
     /// # #[macro_use] extern crate packet_rs; use packet_rs::Packet;
-    /// let pkt = Packet::new(100);
-    /// let other = Packet::new(100);
+    /// let pkt = Packet::new();
+    /// let other = Packet::new();
     /// pkt.compare_with_slice(other.to_vec().as_slice());
     /// ```
     pub fn compare_with_slice(&self, b: &[u8]) -> bool {
-        if self.pktlen != b.len() {
-            println!("this {} other {}", self.pktlen, b.len());
+        let pktlen = self.len();
+        if pktlen != b.len() {
+            println!("this {} other {}", pktlen, b.len());
             return false;
         }
         let a = self.to_vec();
         let matching = a.iter().zip(b).filter(|&(a, b)| a == b).count();
-        if self.pktlen != matching || b.len() != matching {
+        if pktlen != matching || b.len() != matching {
             println!(
                 "this {} other {}, matching upto {} bytes",
-                self.pktlen,
+                pktlen,
                 b.len(),
                 matching
             );
@@ -345,7 +372,7 @@ impl Packet {
     ///
     /// ```
     /// # #[macro_use] extern crate packet_rs; use packet_rs::Packet;
-    /// let pkt = Packet::new(100);
+    /// let pkt = Packet::new();
     /// let v = pkt.to_vec();
     /// ```
     pub fn to_vec(&self) -> Vec<u8> {
@@ -353,23 +380,21 @@ impl Packet {
         for s in &self.hdrs {
             r.extend_from_slice(&s.to_vec().as_slice());
         }
-        let mut payload: Vec<u8> = (0..(self.pktlen - self.hdrlen) as u16)
-            .map(|x| x as u8)
-            .collect();
-        r.append(&mut payload);
+        r.extend_from_slice(&self.payload.as_slice());
         r
     }
     fn clone_me(&self) -> Packet {
-        let mut pkt = Packet::new(self.pktlen);
+        let mut pkt = Packet::new();
         for s in &self.hdrs {
             pkt.hdrs.push(s.as_ref().clone());
             pkt.hdrlen += s.len();
         }
+        pkt.payload = self.payload.clone();
         pkt
     }
     /// Return length of the packet
     pub fn len(&self) -> usize {
-        self.pktlen
+        self.hdrlen + self.payload.len()
     }
     #[staticmethod]
     pub fn ethernet(dst: &str, src: &str, etype: u16) -> Ether {
@@ -446,7 +471,7 @@ impl Packet {
         data.extend_from_slice(&ip_chksum.to_be_bytes());
         data.extend_from_slice(&src.to_ipv4_bytes());
         data.extend_from_slice(&dst.to_ipv4_bytes());
-        ip_chksum = ipv4_checksum(data.as_slice());
+        ip_chksum = Packet::ipv4_checksum(data.as_slice());
         let mut ip = IPv4::from(data);
         ip.set_header_checksum(ip_chksum as u64);
         ip
@@ -689,6 +714,10 @@ impl<'a> PacketSlice<'a> {
         }
     }
     pub fn push(&mut self, hdr: impl Header + 'a) {
+        self.hdrlen += hdr.len();
+        self.hdrs.push(Box::new(hdr));
+    }
+    pub fn insert(&mut self, hdr: impl Header + 'a) {
         self.hdrlen += hdr.len();
         self.hdrs.insert(0, Box::new(hdr));
     }

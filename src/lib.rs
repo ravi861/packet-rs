@@ -59,7 +59,7 @@
 //! use packet_rs::headers::{Ether, IPv4};
 //!
 //! // Construct a UDP packet with sane defaults or use the pre-defined Packet associate functions
-//! let mut pkt = Packet::new(100);
+//! let mut pkt = Packet::new();
 //! pkt.push(Ether::new());
 //! pkt.push(IPv4::new());
 //! pkt.push(Packet::udp(1023, 1234, 95));
@@ -106,7 +106,7 @@
 pub mod headers;
 mod packet;
 pub mod parse;
-mod types;
+pub mod types;
 pub mod utils;
 
 use headers::*;
@@ -122,7 +122,7 @@ use pyo3::prelude::*;
 pub struct Packet {
     hdrs: Vec<Box<dyn Header>>,
     hdrlen: usize,
-    pktlen: usize,
+    payload: Vec<u8>,
 }
 
 /// Structure used to hold an ordered list of header slices

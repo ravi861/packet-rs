@@ -47,7 +47,7 @@ fn main() {
     eth.show();
 
     // create a UDP packet by pushing each header in sequence
-    let mut pkt = Packet::new(100);
+    let mut pkt = Packet::new();
     pkt.push(Ether::new());
     pkt.push(IPv4::new());
     pkt.push(UDP::new());
@@ -61,6 +61,7 @@ fn main() {
     let new_pkt = pkt.clone();
     new_pkt.show();
 
+    let payload: Vec<u8> = (0..100).collect::<Vec<u8>>();
     // create a TCP packet using the Packet associate function
     let pkt = utils::create_tcp_packet(
         "00:01:02:03:04:05",
@@ -86,7 +87,7 @@ fn main() {
         2,
         0,
         false,
-        100,
+        &payload,
     );
     pkt.show();
 }

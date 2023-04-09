@@ -9,15 +9,16 @@ pub fn create_eth_packet(
     vlan_vid: u16,
     vlan_pcp: u8,
     etype: u16,
-    pktlen: u16,
+    payload: &[u8],
 ) -> Packet {
-    let mut pkt = Packet::new(pktlen as usize);
+    let mut pkt = Packet::new();
     if vlan_enable {
         pkt.push(Packet::ethernet(eth_dst, eth_src, EtherType::DOT1Q as u16));
         pkt.push(Packet::vlan(vlan_pcp, 0, vlan_vid, etype));
     } else {
         pkt.push(Packet::ethernet(eth_dst, eth_src, etype));
     }
+    pkt.set_payload(payload);
     pkt
 }
 
@@ -32,7 +33,7 @@ pub fn create_arp_packet(
     target_mac: &str,
     sender_ip: &str,
     target_ip: &str,
-    pktlen: u16,
+    payload: &[u8],
 ) -> Packet {
     let mut pkt = create_eth_packet(
         eth_dst,
@@ -41,7 +42,7 @@ pub fn create_arp_packet(
         vlan_vid,
         vlan_pcp,
         EtherType::ARP as u16,
-        pktlen,
+        payload,
     );
     pkt.push(Packet::arp(
         opcode, sender_mac, target_mac, sender_ip, target_ip,
@@ -64,7 +65,7 @@ pub fn create_ipv4_packet(
     ip_id: u16,
     ip_frag: u16,
     _ip_options: Vec<u8>,
-    pktlen: u16,
+    payload: &[u8],
 ) -> Packet {
     let mut pkt = create_eth_packet(
         eth_dst,
@@ -73,15 +74,19 @@ pub fn create_ipv4_packet(
         vlan_vid,
         vlan_pcp,
         EtherType::IPV4 as u16,
-        pktlen,
+        payload,
     );
-    let mut ip_len = pktlen - ETHERNET_HDR_LEN as u16;
-    if vlan_enable {
-        ip_len -= VLAN_HDR_LEN as u16;
-    }
-
+    let pktlen = IPV4_HDR_LEN + payload.len();
     let ipv4 = Packet::ipv4(
-        ip_ihl, ip_tos, ip_id, ip_ttl, ip_frag, ip_proto, ip_src, ip_dst, ip_len,
+        ip_ihl,
+        ip_tos,
+        ip_id,
+        ip_ttl,
+        ip_frag,
+        ip_proto,
+        ip_src,
+        ip_dst,
+        pktlen as u16,
     );
     pkt.push(ipv4);
     pkt
@@ -99,7 +104,7 @@ pub fn create_ipv6_packet(
     ip_hop_limit: u8,
     ip_src: &str,
     ip_dst: &str,
-    pktlen: u16,
+    payload: &[u8],
 ) -> Packet {
     let mut pkt = create_eth_packet(
         eth_dst,
@@ -108,13 +113,8 @@ pub fn create_ipv6_packet(
         vlan_vid,
         vlan_pcp,
         EtherType::IPV6 as u16,
-        pktlen,
+        payload,
     );
-    let mut ip_len = pktlen - ETHERNET_HDR_LEN as u16 - IPV6_HDR_LEN as u16;
-    if vlan_enable {
-        ip_len -= VLAN_HDR_LEN as u16;
-    }
-
     let ipv6 = Packet::ipv6(
         ip_traffic_class,
         ip_flow_label,
@@ -122,7 +122,7 @@ pub fn create_ipv6_packet(
         ip_hop_limit,
         ip_src,
         ip_dst,
-        ip_len,
+        payload.len() as u16,
     );
     pkt.push(ipv6);
     pkt
@@ -152,7 +152,7 @@ pub fn create_tcp_packet(
     tcp_window: u16,
     tcp_urgent_ptr: u16,
     _tcp_checksum: bool,
-    pktlen: usize,
+    payload: &[u8],
 ) -> Packet {
     let mut pkt = create_ipv4_packet(
         eth_dst,
@@ -169,8 +169,12 @@ pub fn create_tcp_packet(
         ip_id,
         ip_frag,
         ip_options,
-        pktlen as u16,
+        payload,
     );
+    let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
+    ipv4.set_total_len(ipv4.total_len() + TCP_HDR_LEN as u64);
+    let chksum = Packet::ipv4_checksum(ipv4.to_vec().as_slice());
+    ipv4.set_header_checksum(chksum as u64);
 
     let tcp = Packet::tcp(
         tcp_src,
@@ -205,7 +209,7 @@ pub fn create_udp_packet(
     udp_dst: u16,
     udp_src: u16,
     _udp_checksum: bool,
-    pktlen: usize,
+    payload: &[u8],
 ) -> Packet {
     let mut pkt = create_ipv4_packet(
         eth_dst,
@@ -222,12 +226,14 @@ pub fn create_udp_packet(
         ip_id,
         ip_frag,
         ip_options,
-        pktlen as u16,
+        payload,
     );
-    let mut l4_len = pktlen - IPV4_HDR_LEN - ETHERNET_HDR_LEN;
-    if vlan_enable {
-        l4_len -= VLAN_HDR_LEN;
-    }
+    let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
+    ipv4.set_total_len(ipv4.total_len() + UDP_HDR_LEN as u64);
+    let chksum = Packet::ipv4_checksum(ipv4.to_vec().as_slice());
+    ipv4.set_header_checksum(chksum as u64);
+
+    let l4_len = UDP_HDR_LEN + payload.len();
     let udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     pkt.push(udp);
     pkt
@@ -251,7 +257,7 @@ pub fn create_icmp_packet(
     icmp_code: u8,
     _icmp_data: Vec<u8>,
     _udp_checksum: bool,
-    pktlen: usize,
+    payload: &[u8],
 ) -> Packet {
     let mut pkt = create_ipv4_packet(
         eth_dst,
@@ -268,8 +274,13 @@ pub fn create_icmp_packet(
         ip_id,
         ip_frag,
         ip_options,
-        pktlen as u16,
+        payload,
     );
+    let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
+    ipv4.set_total_len(ipv4.total_len() + ICMP_HDR_LEN as u64);
+    let chksum = Packet::ipv4_checksum(ipv4.to_vec().as_slice());
+    ipv4.set_header_checksum(chksum as u64);
+
     let icmp = Packet::icmp(icmp_type, icmp_code);
     pkt.push(icmp);
     pkt
@@ -292,14 +303,13 @@ pub fn create_ipv4ip_packet(
     inner_pkt: Packet,
 ) -> Packet {
     let ipkt_vec = inner_pkt.to_vec();
-    let pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + ipkt_vec.len();
 
     let ip_proto = match IpType::try_from(ipkt_vec[0] >> 4 & 0xf as u8) {
         Ok(IpType::V4) => IpProtocol::IPIP,
         Ok(IpType::V6) => IpProtocol::IPV6,
         _ => IpProtocol::IPIP,
     };
-    let mut pkt = create_ipv4_packet(
+    let pkt = create_ipv4_packet(
         eth_dst,
         eth_src,
         vlan_enable,
@@ -314,9 +324,8 @@ pub fn create_ipv4ip_packet(
         ip_id,
         ip_frag,
         ip_options,
-        pktlen as u16,
+        ipkt_vec.as_slice(),
     );
-    pkt = pkt + inner_pkt;
     pkt
 }
 
@@ -334,14 +343,13 @@ pub fn create_ipv6ip_packet(
     inner_pkt: Packet,
 ) -> Packet {
     let ipkt_vec = inner_pkt.to_vec();
-    let pktlen = ETHERNET_HDR_LEN + IPV6_HDR_LEN + ipkt_vec.len();
 
     let ip_nxt_hdr = match IpType::try_from(ipkt_vec[0] >> 4 & 0xf as u8) {
         Ok(IpType::V4) => IpProtocol::IPIP,
         Ok(IpType::V6) => IpProtocol::IPV6,
         _ => IpProtocol::IPIP,
     };
-    let mut pkt = create_ipv6_packet(
+    let pkt = create_ipv6_packet(
         eth_dst,
         eth_src,
         vlan_enable,
@@ -353,9 +361,8 @@ pub fn create_ipv6ip_packet(
         ip_hop_limit,
         ip_src,
         ip_dst,
-        pktlen as u16,
+        ipkt_vec.as_slice(),
     );
-    pkt = pkt + inner_pkt;
     pkt
 }
 
@@ -379,7 +386,7 @@ pub fn create_tcpv6_packet(
     tcp_flags: u8,
     tcp_window: u16,
     tcp_urgent_ptr: u16,
-    pktlen: usize,
+    payload: &[u8],
 ) -> Packet {
     let mut pkt = create_ipv6_packet(
         eth_dst,
@@ -393,8 +400,10 @@ pub fn create_tcpv6_packet(
         ip_hop_limit,
         ip_src,
         ip_dst,
-        pktlen as u16,
+        payload,
     );
+    let ipv6: &mut IPv6 = (&mut pkt["IPv6"]).into();
+    ipv6.set_payload_len(ipv6.payload_len() + TCP_HDR_LEN as u64);
 
     let tcp = Packet::tcp(
         tcp_src,
@@ -426,7 +435,7 @@ pub fn create_udpv6_packet(
     udp_dst: u16,
     udp_src: u16,
     _udp_checksum: bool,
-    pktlen: usize,
+    payload: &[u8],
 ) -> Packet {
     let mut pkt = create_ipv6_packet(
         eth_dst,
@@ -440,12 +449,12 @@ pub fn create_udpv6_packet(
         ip_hop_limit,
         ip_src,
         ip_dst,
-        pktlen as u16,
+        payload,
     );
-    let mut l4_len = pktlen - IPV6_HDR_LEN - ETHERNET_HDR_LEN;
-    if vlan_enable {
-        l4_len -= VLAN_HDR_LEN;
-    }
+    let ipv6: &mut IPv6 = (&mut pkt["IPv6"]).into();
+    ipv6.set_payload_len(ipv6.payload_len() + UDP_HDR_LEN as u64);
+
+    let l4_len = UDP_HDR_LEN + payload.len();
     let mut udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     udp.set_checksum(0xffff);
     pkt.push(udp);
@@ -467,7 +476,7 @@ pub fn create_icmpv6_packet(
     icmp_code: u8,
     _icmp_data: Vec<u8>,
     _udp_checksum: bool,
-    pktlen: usize,
+    payload: &[u8],
 ) -> Packet {
     let mut pkt = create_ipv6_packet(
         eth_dst,
@@ -481,8 +490,10 @@ pub fn create_icmpv6_packet(
         ip_hop_limit,
         ip_src,
         ip_dst,
-        pktlen as u16,
+        payload,
     );
+    let ipv6: &mut IPv6 = (&mut pkt["IPv6"]).into();
+    ipv6.set_payload_len(ipv6.payload_len() + ICMP_HDR_LEN as u64);
     let icmp = Packet::icmp(icmp_type, icmp_code);
     pkt.push(icmp);
     pkt
@@ -508,8 +519,7 @@ pub fn create_vxlan_packet(
     vxlan_vni: u32,
     inner_pkt: Packet,
 ) -> Packet {
-    let pktlen =
-        ETHERNET_HDR_LEN + IPV4_HDR_LEN + UDP_HDR_LEN + VXLAN_HDR_LEN + inner_pkt.to_vec().len();
+    let ipkt_vec = inner_pkt.to_vec();
     let mut pkt = create_ipv4_packet(
         eth_dst,
         eth_src,
@@ -525,18 +535,15 @@ pub fn create_vxlan_packet(
         ip_id,
         ip_frag,
         ip_options,
-        pktlen as u16,
+        ipkt_vec.as_slice(),
     );
-    let mut l4_len = pktlen - IPV4_HDR_LEN - ETHERNET_HDR_LEN;
-    if vlan_enable {
-        l4_len -= VLAN_HDR_LEN;
-    }
+    let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
+    ipv4.set_total_len(ipv4.total_len() + (UDP_HDR_LEN + VXLAN_HDR_LEN) as u64);
+
+    let l4_len = UDP_HDR_LEN + VXLAN_HDR_LEN + ipkt_vec.len();
     let udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     pkt.push(udp);
-
     pkt.push(Packet::vxlan(vxlan_vni));
-
-    pkt = pkt + inner_pkt;
     pkt
 }
 
@@ -557,8 +564,7 @@ pub fn create_vxlanv6_packet(
     vxlan_vni: u32,
     inner_pkt: Packet,
 ) -> Packet {
-    let pktlen =
-        ETHERNET_HDR_LEN + IPV6_HDR_LEN + UDP_HDR_LEN + VXLAN_HDR_LEN + inner_pkt.to_vec().len();
+    let ipkt_vec = inner_pkt.to_vec();
     let mut pkt = create_ipv6_packet(
         eth_dst,
         eth_src,
@@ -571,12 +577,12 @@ pub fn create_vxlanv6_packet(
         ip_hop_limit,
         ip_src,
         ip_dst,
-        pktlen as u16,
+        ipkt_vec.as_slice(),
     );
-    let mut l4_len = pktlen - IPV6_HDR_LEN - ETHERNET_HDR_LEN;
-    if vlan_enable {
-        l4_len -= VLAN_HDR_LEN;
-    }
+    let ipv6: &mut IPv6 = (&mut pkt["IPv6"]).into();
+    ipv6.set_payload_len(ipv6.payload_len() + (UDP_HDR_LEN + VXLAN_HDR_LEN) as u64);
+
+    let l4_len = UDP_HDR_LEN + VXLAN_HDR_LEN + ipkt_vec.len();
     let mut udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     udp.set_checksum(0xffff);
     pkt.push(udp);
@@ -615,7 +621,18 @@ pub fn create_gre_packet(
     gre_routing: &[u8],
     inner_pkt: Option<Packet>,
 ) -> Packet {
-    let mut pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + GRE_HDR_LEN;
+    let (proto, ipkt_vec) = match inner_pkt {
+        Some(ref p) => {
+            let ipkt_vec = p.to_vec();
+            match ipkt_vec[0] >> 4 & 0xf {
+                4 => (EtherType::IPV4 as u16, ipkt_vec),
+                6 => (EtherType::IPV6 as u16, ipkt_vec),
+                _ => (0, ipkt_vec),
+            }
+        }
+        None => (0, Vec::new()),
+    };
+    let mut pktlen = GRE_HDR_LEN;
     if gre_chksum_present {
         pktlen += GREChksumOffset::size();
     }
@@ -628,19 +645,6 @@ pub fn create_gre_packet(
     if gre_routing_present {
         pktlen += gre_routing.len();
     }
-
-    let proto = match inner_pkt {
-        Some(ref p) => {
-            let ipkt_vec = p.to_vec();
-            pktlen += ipkt_vec.len();
-            match ipkt_vec[0] >> 4 & 0xf {
-                4 => EtherType::IPV4 as u16,
-                6 => EtherType::IPV6 as u16,
-                _ => 0,
-            }
-        }
-        None => 0,
-    };
 
     let mut pkt = create_ipv4_packet(
         eth_dst,
@@ -657,8 +661,13 @@ pub fn create_gre_packet(
         ip_id,
         ip_frag,
         ip_options,
-        pktlen as u16,
+        ipkt_vec.as_slice(),
     );
+    let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
+    ipv4.set_total_len(ipv4.total_len() + pktlen as u64);
+    let chksum = Packet::ipv4_checksum(ipv4.to_vec().as_slice());
+    ipv4.set_header_checksum(chksum as u64);
+
     let gre = Packet::gre(
         gre_chksum_present,
         gre_routing_present,
@@ -680,13 +689,6 @@ pub fn create_gre_packet(
     if gre_seqnum_present {
         pkt.push(Packet::gre_sequence_number(gre_seqnum));
     }
-
-    match inner_pkt {
-        Some(p) => {
-            pkt = pkt + p;
-        }
-        None => (),
-    };
     pkt
 }
 
@@ -713,7 +715,11 @@ pub fn create_erspan_2_packet(
     erspan_index: u32,
     inner_pkt: Option<Packet>,
 ) -> Packet {
-    let mut pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + GRE_HDR_LEN + ERSPAN2_HDR_LEN;
+    let ipkt_vec = match inner_pkt {
+        Some(ref p) => p.to_vec(),
+        None => Vec::new(),
+    };
+    let mut pktlen = GRE_HDR_LEN + ERSPAN2_HDR_LEN;
 
     if gre_seqnum != 0 {
         pktlen += GRESequenceNum::size();
@@ -738,11 +744,18 @@ pub fn create_erspan_2_packet(
         ip_id,
         ip_frag,
         ip_options,
-        pktlen as u16,
+        ipkt_vec.as_slice(),
     );
+    let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
+    ipv4.set_total_len(ipv4.total_len() + pktlen as u64);
+    let chksum = Packet::ipv4_checksum(ipv4.to_vec().as_slice());
+    ipv4.set_header_checksum(chksum as u64);
+
     let mut gre = GRE::new();
     gre.set_proto(EtherType::ERSPANII as u64);
-    gre.set_seqnum_present(gre_seqnum as u64);
+    if gre_seqnum != 0 {
+        gre.set_seqnum_present(1 as u64);
+    }
     pkt.push(gre);
 
     if gre_seqnum != 0 {
@@ -757,13 +770,6 @@ pub fn create_erspan_2_packet(
         erspan_index,
     );
     pkt.push(erspan);
-
-    match inner_pkt {
-        Some(p) => {
-            pkt = pkt + p;
-        }
-        None => (),
-    };
     pkt
 }
 
@@ -794,7 +800,11 @@ pub fn create_erspan_3_packet(
     erspan_pltfm_info: u64,
     inner_pkt: Option<Packet>,
 ) -> Packet {
-    let mut pktlen = ETHERNET_HDR_LEN + IPV4_HDR_LEN + GRE_HDR_LEN + ERSPAN3_HDR_LEN;
+    let ipkt_vec = match inner_pkt {
+        Some(ref p) => p.to_vec(),
+        None => Vec::new(),
+    };
+    let mut pktlen = GRE_HDR_LEN + ERSPAN3_HDR_LEN;
 
     if gre_seqnum != 0 {
         pktlen += GRESequenceNum::size();
@@ -822,8 +832,13 @@ pub fn create_erspan_3_packet(
         ip_id,
         ip_frag,
         ip_options,
-        pktlen as u16,
+        ipkt_vec.as_slice(),
     );
+    let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
+    ipv4.set_total_len(ipv4.total_len() + pktlen as u64);
+    let chksum = Packet::ipv4_checksum(ipv4.to_vec().as_slice());
+    ipv4.set_header_checksum(chksum as u64);
+
     let mut gre = GRE::new();
     gre.set_proto(EtherType::ERSPANIII as u64);
     gre.set_seqnum_present(gre_seqnum as u64);

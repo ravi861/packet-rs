@@ -11,6 +11,7 @@ pub const IPV4_HDR_LEN: usize = 20;
 pub const IPV6_HDR_LEN: usize = 40;
 pub const UDP_HDR_LEN: usize = 8;
 pub const TCP_HDR_LEN: usize = 20;
+pub const ICMP_HDR_LEN: usize = 4;
 pub const VXLAN_HDR_LEN: usize = 8;
 pub const ERSPAN2_HDR_LEN: usize = 8;
 pub const ERSPAN3_HDR_LEN: usize = 12;

@@ -149,6 +149,7 @@ mod tests {
     }
     #[test]
     fn ip_checksum_test() {
+        let payload: Vec<u8> = (0..100).collect::<Vec<u8>>();
         let ips = vec![
             "10.10.10.1",
             "11.11.11.1",
@@ -188,12 +189,12 @@ mod tests {
                         0,
                         0,
                         false,
-                        100,
+                        &payload,
                     );
                     let ip: &IPv4 = (&pkt["IPv4"]).into();
                     assert_eq!(ipv4_checksum_verify(ip.to_vec().as_slice()), 0);
 
-                    let ipv4 = Packet::ipv4(5, 0, 115, ttl, 0, 6, sip, dip, 86);
+                    let ipv4 = Packet::ipv4(5, 0, 115, ttl, 0, 6, sip, dip, 140);
                     assert_eq!(ipv4_checksum_verify(ipv4.to_vec().as_slice()), 0);
 
                     assert_eq!(ip.header_checksum(), ipv4.header_checksum());
@@ -217,6 +218,7 @@ mod tests {
     }
     #[test]
     fn create_packet_test() {
+        let payload: Vec<u8> = (0..100).collect::<Vec<u8>>();
         let _tcp = utils::create_tcp_packet(
             "00:01:02:03:04:05",
             "00:06:07:08:09:0a",
@@ -241,7 +243,7 @@ mod tests {
             2,
             0,
             false,
-            100,
+            &payload,
         );
 
         let _udp = utils::create_udp_packet(
@@ -261,7 +263,7 @@ mod tests {
             1234,
             9090,
             false,
-            129,
+            &payload,
         );
 
         let _icmp = utils::create_icmp_packet(
@@ -282,7 +284,7 @@ mod tests {
             0,
             Vec::new(),
             false,
-            129,
+            &payload,
         );
 
         let _tcpv6 = utils::create_tcpv6_packet(
@@ -305,7 +307,7 @@ mod tests {
             1,
             0,
             0,
-            100,
+            &payload,
         );
 
         let _udpv6 = utils::create_udpv6_packet(
@@ -322,7 +324,7 @@ mod tests {
             1234,
             9090,
             false,
-            129,
+            &payload,
         );
 
         let _icmpv6 = utils::create_icmpv6_packet(
@@ -340,7 +342,7 @@ mod tests {
             0,
             Vec::new(),
             false,
-            129,
+            &payload,
         );
 
         let _vxlan_udp = utils::create_vxlan_packet(
@@ -432,7 +434,7 @@ mod tests {
             "00:00:00:00:00:00",
             "10.10.10.1",
             "0.0.0.0",
-            60,
+            &payload,
         );
 
         let _arp_resp = utils::create_arp_packet(
@@ -446,7 +448,7 @@ mod tests {
             "00:06:07:08:09:0a",
             "10.10.10.2",
             "10.10.10.1",
-            60,
+            &payload,
         );
 
         let mut ip_tcp = _tcp.clone();
@@ -630,13 +632,13 @@ mod tests {
             Some(_icmp.clone()),
         );
 
-        let mut _llc = Packet::new(100);
+        let mut _llc = Packet::new();
         _llc.push(Dot3::from(vec![
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0x0, 86,
         ]));
         _llc.push(LLC::from(vec![0x0, 0x04, 0x0]));
 
-        let mut _snap = Packet::new(100);
+        let mut _snap = Packet::new();
         _snap.push(Dot3::from(vec![
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0x0, 86,
         ]));
@@ -672,11 +674,13 @@ mod tests {
         for pkt in pkts {
             let parsed = parse::full::parse(pkt.to_vec().as_slice());
             // parsed.show();
+            // pkt.show();
             assert!(parsed.compare(&pkt));
         }
     }
 
     fn test_tcp_packet() -> Packet {
+        let payload: Vec<u8> = (0..100).collect::<Vec<u8>>();
         utils::create_tcp_packet(
             "00:11:11:11:11:11",
             "00:06:07:08:09:0a",
@@ -701,7 +705,7 @@ mod tests {
             0,
             0,
             false,
-            100,
+            &payload,
         )
     }
     #[test]
