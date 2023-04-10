@@ -174,7 +174,7 @@ macro_rules! make_header {
                 slice: &'a [u8]
             }
             impl <'a>[<$name Slice>]<'a> {
-                pub fn from_slice(slice: &'a[u8]) -> [<$name Slice>]<'a> {
+                pub fn from(slice: &'a[u8]) -> [<$name Slice>]<'a> {
                     //check length
                     // use crate::ReadError::*;
                     // if slice.len() < $name::size() {

@@ -78,7 +78,6 @@ impl Add for Packet {
     fn add(mut self, other: Self) -> Self {
         for s in &other.hdrs {
             self.hdrs.push(s.as_ref().clone());
-            self.hdrlen += s.len();
         }
         self
     }
@@ -106,7 +105,7 @@ impl Packet {
         let out = !(chksum as u16);
         out
     }
-    /// Append a header into the packet from the stack
+    /// Append a header into the packet at the end but before the payload
     /// # Example
     ///
     /// ```
@@ -116,10 +115,9 @@ impl Packet {
     /// pkt.push(eth);
     /// ```
     pub fn push(&mut self, hdr: impl Header) {
-        self.hdrlen += hdr.len();
         self.hdrs.push(hdr.to_owned());
     }
-    /// Insert a header into the packet from the stack
+    /// Insert a header into the packet at the beginning
     /// # Example
     ///
     /// ```
@@ -129,21 +127,7 @@ impl Packet {
     /// pkt.insert(eth);
     /// ```
     pub fn insert(&mut self, hdr: impl Header) {
-        self.hdrlen += hdr.len();
         self.hdrs.insert(0, hdr.to_owned());
-    }
-    /// Push a header into the packet from the heap
-    /// # Example
-    ///
-    /// ```
-    /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
-    /// let mut pkt = Packet::new();
-    /// let eth = Box::new(Ether::new());
-    /// pkt.push_boxed_header(eth);
-    /// ```
-    pub fn push_boxed_header(&mut self, hdr: Box<dyn Header>) {
-        self.hdrlen += hdr.len();
-        self.hdrs.insert(0, hdr);
     }
     /// Pop a header at the top of the packet
     /// # Example
@@ -158,8 +142,7 @@ impl Packet {
     /// ```
     pub fn pop(&mut self) -> () {
         if self.hdrs.len() != 0 {
-            let last = self.hdrs.pop().unwrap();
-            self.hdrlen -= last.len();
+            self.hdrs.pop().unwrap();
         }
     }
     /// Remove a header with an index
@@ -176,8 +159,7 @@ impl Packet {
     /// ```
     pub fn remove(&mut self, index: usize) -> () {
         if self.hdrs.len() != 0 && index < self.hdrs.len() {
-            let remove = self.hdrs.remove(index);
-            self.hdrlen -= remove.len();
+            self.hdrs.remove(index);
         }
     }
     /// Set the payload for the packet
@@ -193,8 +175,9 @@ impl Packet {
     /// let pld: Vec<u8> = Vec::from([1, 2, 3, 4, 5]);
     /// pkt.set_payload(pld.as_slice());
     /// ```
+    #[inline(always)]
     pub fn set_payload(&mut self, payload: &[u8]) -> () {
-        self.payload = Vec::from(payload);
+        self.payload.extend_from_slice(payload);
     }
     /// Get immutable access to a header from the packet
     /// # Example
@@ -291,7 +274,6 @@ impl Packet {
         let x: &mut Ether = self.get_header_mut(index.as_str()).unwrap();
         x.replace(&value);
     }
-    #[new]
     /// Create a new Packet instance.
     /// # Example
     ///
@@ -300,10 +282,11 @@ impl Packet {
     /// let pkt = Packet::new();
     /// pkt.show();
     /// ```
+    #[inline(always)]
+    #[new]
     pub fn new() -> Packet {
         Packet {
             hdrs: Vec::new(),
-            hdrlen: 0,
             payload: Vec::new(),
         }
     }
@@ -387,14 +370,13 @@ impl Packet {
         let mut pkt = Packet::new();
         for s in &self.hdrs {
             pkt.hdrs.push(s.as_ref().clone());
-            pkt.hdrlen += s.len();
         }
         pkt.payload = self.payload.clone();
         pkt
     }
     /// Return length of the packet
     pub fn len(&self) -> usize {
-        self.hdrlen + self.payload.len()
+        self.hdrs.iter().map(|s| s.len()).sum::<usize>() + self.payload.len()
     }
     #[staticmethod]
     pub fn ethernet(dst: &str, src: &str, etype: u16) -> Ether {
@@ -706,31 +688,31 @@ fn set_get_octets_test() {
 }
 
 impl<'a> PacketSlice<'a> {
-    pub fn new(pktlen: usize) -> PacketSlice<'a> {
+    pub fn new() -> PacketSlice<'a> {
         PacketSlice {
             hdrs: Vec::new(),
-            hdrlen: 0,
-            pktlen,
+            payload: &[],
         }
     }
     pub fn push(&mut self, hdr: impl Header + 'a) {
-        self.hdrlen += hdr.len();
         self.hdrs.push(Box::new(hdr));
     }
     pub fn insert(&mut self, hdr: impl Header + 'a) {
-        self.hdrlen += hdr.len();
         self.hdrs.insert(0, Box::new(hdr));
+    }
+    pub fn set_payload(&mut self, payload: &'a [u8]) -> () {
+        self.payload = payload;
     }
     pub fn to_vec(&self) -> Vec<u8> {
         let mut r = Vec::new();
         for s in &self.hdrs {
             r.extend_from_slice(&s.as_slice());
         }
-        let mut payload: Vec<u8> = (0..(self.pktlen - self.hdrlen) as u16)
-            .map(|x| x as u8)
-            .collect();
-        r.append(&mut payload);
+        r.extend_from_slice(&self.payload);
         r
+    }
+    pub fn len(&self) -> usize {
+        self.hdrs.iter().map(|s| s.len()).sum::<usize>() + self.payload.len()
     }
     pub fn show(&self) -> () {
         for s in &self.hdrs {
@@ -750,3 +732,12 @@ impl<'a> PacketSlice<'a> {
         println!();
     }
 }
+// https://www.reddit.com/r/learnrust/comments/yltr2f/how_to_create_an_iterator_over_two_slices_without/
+// impl <'a>PacketSlice<'a> {
+//     fn iter_bytes(&self) -> impl Iterator<Item = &u8> + '_ {
+//         self.hdrs
+//             .iter()
+//             .flat_map(|num| num.as_slice())
+//             .chain(self.payload)
+//     }
+// }

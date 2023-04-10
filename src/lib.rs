@@ -101,8 +101,6 @@
 //! Please refer to examples/pkt.py and pyo3/maturin documentation on how to use the bindings.
 //!
 
-#![allow(dead_code)]
-
 pub mod headers;
 mod packet;
 pub mod parse;
@@ -121,15 +119,13 @@ use pyo3::prelude::*;
 /// Structure used to hold an ordered list of headers
 pub struct Packet {
     hdrs: Vec<Box<dyn Header>>,
-    hdrlen: usize,
     payload: Vec<u8>,
 }
 
 /// Structure used to hold an ordered list of header slices
 pub struct PacketSlice<'a> {
     hdrs: Vec<Box<dyn Header + 'a>>,
-    hdrlen: usize,
-    pub pktlen: usize,
+    payload: &'a [u8],
 }
 
 #[cfg(feature = "python-module")]
