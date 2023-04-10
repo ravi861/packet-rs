@@ -103,7 +103,7 @@
 
 pub mod headers;
 mod packet;
-pub mod parse;
+pub mod parser;
 pub mod types;
 pub mod utils;
 

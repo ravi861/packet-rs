@@ -27,7 +27,7 @@ pub fn ipv4_checksum_verify(v: &[u8]) -> u16 {
 mod tests {
 
     use super::*;
-    use packet_rs::parse;
+    use packet_rs::parser;
     use packet_rs::Packet;
     use pcap::pcap_write;
 
@@ -672,7 +672,7 @@ mod tests {
         pcap_write(&pkts.iter().map(|x| x.to_vec() as Vec<u8>).collect());
 
         for pkt in pkts {
-            let parsed = parse::full::parse(pkt.to_vec().as_slice());
+            let parsed = parser::slow::parse(pkt.to_vec().as_slice());
             // parsed.show();
             // pkt.show();
             assert!(parsed.compare(&pkt));
@@ -790,7 +790,7 @@ mod tests {
         // parse in every iteration
         let start = Instant::now();
         for _ in 0..cnt {
-            let p = parse::full::parse(&slice);
+            let p = parser::slow::parse(&slice);
             p.to_vec();
         }
         println!("{} packets parsed   : {:?}", cnt, start.elapsed());
@@ -805,7 +805,7 @@ mod tests {
         // parse in every iteration
         let start = Instant::now();
         for _ in 0..cnt {
-            let p = parse::slice::parse(&slice);
+            let p = parser::fast::parse(&slice);
             p.to_vec();
         }
         println!("{} packets parsed   : {:?}", cnt, start.elapsed());
