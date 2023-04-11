@@ -9,11 +9,10 @@
 //! # packet_rs
 //!
 //! packet_rs is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets.
-//! packet_rs has the most common networking headers already pre-defined.
 //!
-//!  * The `headers` module, defines commonly used network packet headers and allows for defining new header types
-//!  * The `Packet` struct, a convenient abstraction of a network packet and container to hold a group of headers
-//!  * The `Parser` module, provides a super fast packet deserializer to compose Packets from slices
+//!  * The [`headers`] module, defines commonly used network packet headers and allows for defining new header types
+//!  * The [`Packet`] struct, a convenient abstraction of a network packet and container to hold a group of headers
+//!  * The [`parser`] module, provides a super fast packet deserializer to compose Packets from slices
 //!
 //! ### Terminology
 //!  * Packet refers to a container which represents a network packet
@@ -32,7 +31,8 @@
 //! ```
 //!
 //! ### Create a Packet
-//! A packet is an ordered list of headers. Push headers as required into a packet
+//! A packet is an ordered list of headers.
+//!
 //!  * Push or pop headers into the packet
 //!  * Mutably/immutably retrieve existing headers
 //!  * Set a custom payload
@@ -47,14 +47,41 @@
 //! pkt.push(Packet::udp(1023, 1234, 95));
 //! ```
 //!
+//! ### Parse a byte stream
+//! Parse a byte stream to generate a [`Packet`] or a [`PacketSlice`]
+//!
+//! * The parser fast module is zero-copy and generates a PacketSlice. PacketSlice has the same lifetime as the byte stream.
+//! * The parser slow module creates a new packet from the byte stream.
+//!
+//! Both of the above parsing options provide full access to all the headers and each field within the header.
+//! ```
+//! # extern crate packet_rs;
+//! # use packet_rs::Packet;
+//! # use packet_rs::parser;
+//! # use packet_rs::headers::*;
+//! #
+//! # let mut data = Packet::new();
+//! # data.push(Ether::new());
+//! # data.push(IPv4::new());
+//! # data.push(TCP::new());
+//! # let data = data.to_vec();
+//!
+//! let mut pkt: Packet = parser::slow::parse(&data.as_slice());
+//! let eth: &mut Ether = (&mut pkt["Ether"]).into();
+//! println!("{}", eth.etype());
+//! ```
+//! Similar semantics apply for fast parsing except where a PacketSlice is returned.
+//! * [`parser::slow::parse_ethernet`] for parsing from an Ethernet header and below and then edit it
+//! * [`parser::fast::parse_ipv4`] for parsing`] from an IPv4 and below and is read-only
+//!
 //! ### Define a header
 //!
 //! Define a header which can go into a new protocol stack
 //!
-//! ```rust,ignore
-//! #[macro_use]
-//! extern crate packet_rs;
-//!
+//! ```ignore
+//! # #[macro_use]
+//! # extern crate packet_rs;
+//! # use packet_rs::make_header;
 //! make_header!(
 //! MyHeader 4
 //! (
@@ -79,6 +106,10 @@
 //!
 //! packet_rs supports Rust bindings for Python. All of the pre-defined header and Packet APIs are available as Python APIs
 //! Please refer to examples/pkt.py and pyo3/maturin documentation on how to use the bindings.
+//!
+//! ```sh
+//! cargo build --features python-module
+//! ```
 //!
 
 pub mod headers;
