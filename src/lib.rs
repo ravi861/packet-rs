@@ -8,15 +8,44 @@
 
 //! # packet_rs
 //!
-//! `packet_rs` is a Rust based Scapy alternative supporting Rust bindings for Python.
-//!
-//! ## Introduction
-//!
 //! packet_rs is a rust based alternative to the popular python Scapy packet library. It tries to provide a scapy like API interface to define new headers and construct packets.
 //! packet_rs has the most common networking headers already pre-defined.
 //!
-//!  * The `headers` module, allows for defining new and custom headers
-//!  * The `packet` module, a convenient abstraction of a network packet and container to hold a group of headers
+//!  * The `headers` module, defines commonly used network packet headers and allows for defining new header types
+//!  * The `Packet` struct, a convenient abstraction of a network packet and container to hold a group of headers
+//!  * The `Parser` module, provides a super fast packet deserializer to compose Packets from slices
+//!
+//! ### Terminology
+//!  * Packet refers to a container which represents a network packet
+//!  * Headers are network headers like ARP, IP, Vxlan, etc
+//!  * Slice is a network packet represented as a series of u8 bytes
+//!
+//! ### Create a header
+//! A header is a network protocol header and allows to individually get/set each field in the header
+//! ```
+//! # extern crate packet_rs;
+//! # use packet_rs::headers::{Ether};
+//! #
+//! let mut eth = Ether::new();
+//! eth.set_dst(0xaabbccddeeff);
+//! println!("{}", eth.etype());
+//! ```
+//!
+//! ### Create a Packet
+//! A packet is an ordered list of headers. Push headers as required into a packet
+//!  * Push or pop headers into the packet
+//!  * Mutably/immutably retrieve existing headers
+//!  * Set a custom payload
+//! ```
+//! # extern crate packet_rs;
+//! # use packet_rs::Packet;
+//! # use packet_rs::headers::{Ether, IPv4};
+//! #
+//! let mut pkt = Packet::new();
+//! pkt.push(Ether::new());
+//! pkt.push(IPv4::new());
+//! pkt.push(Packet::udp(1023, 1234, 95));
+//! ```
 //!
 //! ### Define a header
 //!
@@ -37,62 +66,13 @@
 //! vec![0x0, 0xa, 0x8, 0x0]      // <= optional default data
 //! );
 //!
-//! // 2 ways to use a header
-//! // Call new on the *MyHeader* header
+//! // Create the custom header
 //! let hdr = MyHeader::new();
-//!
-//! // Pass a data buffer as an argument
-//! let hdr = MyHeader::from(vec![0xF0, 0x0a, 0x08, 0x10]);
 //!
 //! // make_header! generates helper methods and associated functions for each field in the header
 //! println!("{}", hdr.field_2());   // fetch the field_2 value
 //! hdr.set_field_2(1);              // set the field_2 value
 //! hdr.show();                      // display the MyHeader header
-//! ```
-//!
-//! ### Create a Packet
-//!
-//! A packet is an ordered list of headers. Push headers as required into a packet
-//! ```rust
-//! extern crate packet_rs;
-//! use packet_rs::Packet;
-//! use packet_rs::headers::{Ether, IPv4};
-//!
-//! // Construct a UDP packet with sane defaults or use the pre-defined Packet associate functions
-//! let mut pkt = Packet::new();
-//! pkt.push(Ether::new());
-//! pkt.push(IPv4::new());
-//! pkt.push(Packet::udp(1023, 1234, 95));
-//!
-//! // display packet contents
-//! pkt.show();
-//! ```
-//! ```ignore
-//! #### Ether            Size   Data
-//! -------------------------------------------
-//! dst                 :   48 : 00 01 02 03 04 05
-//! src                 :   48 : 00 06 07 08 09 0a
-//! etype               :   16 : 08 00
-//! #### IPv4             Size   Data
-//! -------------------------------------------
-//! version             :    4 : 04
-//! ihl                 :    4 : 05
-//! diffserv            :    8 : 00
-//! total_len           :   16 : 00 14
-//! identification      :   16 : 00 33
-//! flags               :    3 : 02
-//! frag_startset       :   13 : 06 29
-//! ttl                 :    8 : 64
-//! protocol            :    8 : 06
-//! header_checksum     :   16 : fa ec
-//! src                 :   32 : c0 a8 00 01
-//! dst                 :   32 : c0 a8 00 02
-//! #### UDP              Size   Data
-//! -------------------------------------------
-//! src                 :   16 : 03 ff
-//! dst                 :   16 : 04 d2
-//! length              :   16 : 00 5f
-//! checksum            :   16 : 00 00
 //! ```
 //!
 //! ### Python support
@@ -104,7 +84,7 @@
 pub mod headers;
 mod packet;
 pub mod parser;
-pub mod types;
+pub(crate) mod types;
 pub mod utils;
 
 use headers::*;

@@ -220,7 +220,7 @@ pub fn parse_vxlan<'a>(arr: &'a [u8]) -> PacketSlice<'a> {
     pkt.insert(VxlanSlice::from(&arr[0..Vxlan::size()]));
     pkt
 }
-pub fn accept<'a>(arr: &'a [u8]) -> PacketSlice<'a> {
+fn accept<'a>(arr: &'a [u8]) -> PacketSlice<'a> {
     let mut pkt = PacketSlice::new();
     pkt.set_payload(arr);
     pkt

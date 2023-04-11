@@ -1,3 +1,5 @@
+//! # Helper utilities to generate packets
+
 use crate::headers::*;
 use crate::types::*;
 use crate::Packet;
@@ -76,7 +78,7 @@ pub fn create_ipv4_packet(
         EtherType::IPV4 as u16,
         payload,
     );
-    let pktlen = IPV4_HDR_LEN + payload.len();
+    let pktlen = IPv4::size() + payload.len();
     let ipv4 = Packet::ipv4(
         ip_ihl,
         ip_tos,
@@ -172,7 +174,7 @@ pub fn create_tcp_packet(
         payload,
     );
     let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
-    ipv4.set_total_len(ipv4.total_len() + TCP_HDR_LEN as u64);
+    ipv4.set_total_len(ipv4.total_len() + TCP::size() as u64);
     let chksum = Packet::ipv4_checksum(ipv4.to_vec().as_slice());
     ipv4.set_header_checksum(chksum as u64);
 
@@ -229,11 +231,11 @@ pub fn create_udp_packet(
         payload,
     );
     let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
-    ipv4.set_total_len(ipv4.total_len() + UDP_HDR_LEN as u64);
+    ipv4.set_total_len(ipv4.total_len() + UDP::size() as u64);
     let chksum = Packet::ipv4_checksum(ipv4.to_vec().as_slice());
     ipv4.set_header_checksum(chksum as u64);
 
-    let l4_len = UDP_HDR_LEN + payload.len();
+    let l4_len = UDP::size() + payload.len();
     let udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     pkt.push(udp);
     pkt
@@ -277,7 +279,7 @@ pub fn create_icmp_packet(
         payload,
     );
     let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
-    ipv4.set_total_len(ipv4.total_len() + ICMP_HDR_LEN as u64);
+    ipv4.set_total_len(ipv4.total_len() + ICMP::size() as u64);
     let chksum = Packet::ipv4_checksum(ipv4.to_vec().as_slice());
     ipv4.set_header_checksum(chksum as u64);
 
@@ -403,7 +405,7 @@ pub fn create_tcpv6_packet(
         payload,
     );
     let ipv6: &mut IPv6 = (&mut pkt["IPv6"]).into();
-    ipv6.set_payload_len(ipv6.payload_len() + TCP_HDR_LEN as u64);
+    ipv6.set_payload_len(ipv6.payload_len() + TCP::size() as u64);
 
     let tcp = Packet::tcp(
         tcp_src,
@@ -452,9 +454,9 @@ pub fn create_udpv6_packet(
         payload,
     );
     let ipv6: &mut IPv6 = (&mut pkt["IPv6"]).into();
-    ipv6.set_payload_len(ipv6.payload_len() + UDP_HDR_LEN as u64);
+    ipv6.set_payload_len(ipv6.payload_len() + UDP::size() as u64);
 
-    let l4_len = UDP_HDR_LEN + payload.len();
+    let l4_len = UDP::size() + payload.len();
     let mut udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     udp.set_checksum(0xffff);
     pkt.push(udp);
@@ -493,7 +495,7 @@ pub fn create_icmpv6_packet(
         payload,
     );
     let ipv6: &mut IPv6 = (&mut pkt["IPv6"]).into();
-    ipv6.set_payload_len(ipv6.payload_len() + ICMP_HDR_LEN as u64);
+    ipv6.set_payload_len(ipv6.payload_len() + ICMP::size() as u64);
     let icmp = Packet::icmp(icmp_type, icmp_code);
     pkt.push(icmp);
     pkt
@@ -538,9 +540,9 @@ pub fn create_vxlan_packet(
         ipkt_vec.as_slice(),
     );
     let ipv4: &mut IPv4 = (&mut pkt["IPv4"]).into();
-    ipv4.set_total_len(ipv4.total_len() + (UDP_HDR_LEN + VXLAN_HDR_LEN) as u64);
+    ipv4.set_total_len(ipv4.total_len() + (UDP::size() + Vxlan::size()) as u64);
 
-    let l4_len = UDP_HDR_LEN + VXLAN_HDR_LEN + ipkt_vec.len();
+    let l4_len = UDP::size() + Vxlan::size() + ipkt_vec.len();
     let udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     pkt.push(udp);
     pkt.push(Packet::vxlan(vxlan_vni));
@@ -580,9 +582,9 @@ pub fn create_vxlanv6_packet(
         ipkt_vec.as_slice(),
     );
     let ipv6: &mut IPv6 = (&mut pkt["IPv6"]).into();
-    ipv6.set_payload_len(ipv6.payload_len() + (UDP_HDR_LEN + VXLAN_HDR_LEN) as u64);
+    ipv6.set_payload_len(ipv6.payload_len() + (UDP::size() + Vxlan::size()) as u64);
 
-    let l4_len = UDP_HDR_LEN + VXLAN_HDR_LEN + ipkt_vec.len();
+    let l4_len = UDP::size() + Vxlan::size() + ipkt_vec.len();
     let mut udp = Packet::udp(udp_src, udp_dst, l4_len as u16);
     udp.set_checksum(0xffff);
     pkt.push(udp);
@@ -632,7 +634,7 @@ pub fn create_gre_packet(
         }
         None => (0, Vec::new()),
     };
-    let mut pktlen = GRE_HDR_LEN;
+    let mut pktlen = GRE::size();
     if gre_chksum_present {
         pktlen += GREChksumOffset::size();
     }
@@ -719,7 +721,7 @@ pub fn create_erspan_2_packet(
         Some(ref p) => p.to_vec(),
         None => Vec::new(),
     };
-    let mut pktlen = GRE_HDR_LEN + ERSPAN2_HDR_LEN;
+    let mut pktlen = GRE::size() + ERSPAN2::size();
 
     if gre_seqnum != 0 {
         pktlen += GRESequenceNum::size();
@@ -804,7 +806,7 @@ pub fn create_erspan_3_packet(
         Some(ref p) => p.to_vec(),
         None => Vec::new(),
     };
-    let mut pktlen = GRE_HDR_LEN + ERSPAN3_HDR_LEN;
+    let mut pktlen = GRE::size() + ERSPAN3::size();
 
     if gre_seqnum != 0 {
         pktlen += GRESequenceNum::size();

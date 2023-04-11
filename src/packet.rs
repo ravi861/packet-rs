@@ -694,13 +694,13 @@ impl<'a> PacketSlice<'a> {
             payload: &[],
         }
     }
-    pub fn push(&mut self, hdr: impl Header + 'a) {
+    pub(crate) fn _push(&mut self, hdr: impl Header + 'a) {
         self.hdrs.push(Box::new(hdr));
     }
-    pub fn insert(&mut self, hdr: impl Header + 'a) {
+    pub(crate) fn insert(&mut self, hdr: impl Header + 'a) {
         self.hdrs.insert(0, Box::new(hdr));
     }
-    pub fn set_payload(&mut self, payload: &'a [u8]) -> () {
+    pub(crate) fn set_payload(&mut self, payload: &'a [u8]) -> () {
         self.payload = payload;
     }
     pub fn to_vec(&self) -> Vec<u8> {

@@ -220,7 +220,7 @@ pub fn parse_vxlan(arr: &[u8]) -> Packet {
     pkt.insert(Vxlan::from(arr[0..Vxlan::size()].to_vec()));
     pkt
 }
-pub fn accept(arr: &[u8]) -> Packet {
+fn accept(arr: &[u8]) -> Packet {
     let mut pkt = Packet::new();
     pkt.set_payload(arr);
     pkt

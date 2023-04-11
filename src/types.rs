@@ -4,18 +4,6 @@ pub const MAC_LEN: usize = 6;
 pub const IPV4_LEN: usize = 4;
 pub const IPV6_LEN: usize = 16;
 
-pub const ETHERNET_HDR_LEN: usize = 14;
-pub const VLAN_HDR_LEN: usize = 4;
-pub const GRE_HDR_LEN: usize = 4;
-pub const IPV4_HDR_LEN: usize = 20;
-pub const IPV6_HDR_LEN: usize = 40;
-pub const UDP_HDR_LEN: usize = 8;
-pub const TCP_HDR_LEN: usize = 20;
-pub const ICMP_HDR_LEN: usize = 4;
-pub const VXLAN_HDR_LEN: usize = 8;
-pub const ERSPAN2_HDR_LEN: usize = 8;
-pub const ERSPAN3_HDR_LEN: usize = 12;
-
 pub const UDP_PORT_VXLAN: u16 = 4789;
 
 pub enum IpType {

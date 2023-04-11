@@ -1,22 +1,22 @@
-//! # Headers module
+//! # Headers module which includes all pre-defined headers
 //!
 //! `headers` holds the pre-defined networking headers generated using `make_headers!` macro.
 //!
 //! The general recommendation is to use Owned headers when constructing new headers to send over the wire or perform any packet manipulation. Sliced headers can be used for read-only or display purposes.
 //!
-//! The `parse` module can be used to get a fully owned packet from the byte stream or a sliced packet for fast lookup.
+//! The `parser` module can be used to get a fully owned packet from the byte stream or a sliced packet for fast lookup.
 //!
 //! ## Owned header
 //!
-//! These headers own the data. Used within the `Packet` structure and to be used for packet construction. Each field in the header can be updated or read using the corresponding field API.
+//! These headers own the data. Used within the `Packet` structure for packet construction. Each field in the header can be updated or read using the corresponding field API.
 //!
-//! Use `ARP::new()` or `ARP::from_vec()` to generate a header.
+//! Use `ARP::new()` or `ARP::from()` to generate a header.
 //!
 //! ## Slice header
 //!
 //! These headers are references to packet slices. Used within the `PacketSlice` structure. This structure will be valid as long as the byte stream is in scope. Since they hold a reference, the structure is immutable. The usage semantics are exactly like the owned headers.
 //!
-//! Use `ARPSlice::from_slice()` to generate a sliced header.
+//! Use `ARPSlice::from()` to generate a sliced header.
 //!
 //!
 
@@ -199,6 +199,16 @@ macro_rules! make_header {
                     ::bitfield::Into::into(raw_value)
                 }
                 )*
+                pub fn bytes(&self, msb: usize, lsb: usize) -> Vec<u8> {
+                    let bit_len = ::bitfield::size_of::<u8>() * 8;
+                    assert_eq!((msb-lsb+1)%bit_len, 0);
+                    let mut value: Vec<u8> = Vec::new();
+                    for i in (lsb..=msb).step_by(bit_len) {
+                        let v: u8 = self.bit_range(i + 7, i) as u8;
+                        value.push(v);
+                    }
+                    value
+                }
                 pub const fn size() -> usize {
                     $size
                 }
@@ -207,12 +217,6 @@ macro_rules! make_header {
                 }
                 pub const fn name(&self) -> &str {
                     stringify!($name)
-                }
-                pub fn clone(&self) -> $name {
-                    unimplemented!();
-                }
-                pub fn to_vec(&self) -> Vec<u8> {
-                    self.slice.to_vec()
                 }
                 pub fn as_slice(&self) -> &[u8] {
                     self.slice
@@ -266,16 +270,15 @@ macro_rules! make_header {
                     self.show();
                 }
                 fn to_vec(&self) -> Vec<u8> {
-                    self.to_vec()
+                    self.as_slice().to_vec()
                 }
                 fn as_slice(&self) -> &[u8] {
                     self.as_slice()
                 }
                 fn clone(&self) -> Box<dyn Header> {
-                    Box::new(self.clone())
+                    unimplemented!();
                 }
                 fn to_owned(self) -> Box<dyn Header> {
-                    //Box::new(self)
                     unimplemented!();
                 }
                 fn name(&self) -> &str {
@@ -325,11 +328,6 @@ macro_rules! make_header {
                 #[new]
                 pub fn new() -> $name {
                     let t = ProtectedArray { a: Arc::new(Mutex::new($x)) };
-                    $name{ data: t }
-                }
-                #[staticmethod]
-                pub fn from_vec(data: Vec<u8>) -> $name {
-                    let t = ProtectedArray { a: Arc::new(Mutex::new(data)) };
                     $name{ data: t }
                 }
                 $(
@@ -489,7 +487,7 @@ macro_rules! make_header {
                     self.to_vec()
                 }
                 fn as_slice(&self) -> &[u8] {
-                    todo!();
+                    unimplemented!();
                 }
                 fn clone(&self) -> Box<dyn Header> {
                     Box::new(self.clone())
