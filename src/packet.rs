@@ -201,7 +201,11 @@ impl Packet {
     /// println!("{}", x.etype());
     /// ```
     pub fn get_header<'a, T: 'static>(&'a self, index: &'a str) -> Result<&'a T, String> {
-        match self.get(index).and_then(|y| y.as_any().downcast_ref::<T>()) {
+        match self.hdrs
+            .iter()
+            .find(|&x| x.name() == index)
+            .and_then(|y| y.as_any().downcast_ref::<T>())
+        {
             Some(b) => Ok(b),
             None => Err(format!("{} header not found", index)),
         }
@@ -226,7 +230,11 @@ impl Packet {
         &'a mut self,
         index: &'a str,
     ) -> Result<&'a mut T, String> {
-        match self.get_mut(index).and_then(|y| y.as_any_mut().downcast_mut::<T>()) {
+        match self.hdrs
+            .iter_mut()
+            .find(|&x| x.name() == index)
+            .and_then(|y| y.as_any_mut().downcast_mut::<T>())
+        {
             Some(b) => Ok(b),
             None => Err(format!("{} header not found", index)),
         }
