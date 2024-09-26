@@ -203,7 +203,7 @@ impl Packet {
     pub fn get_header<'a, T: 'static>(&'a self, index: &'a str) -> Result<&'a T, String> {
         match self.hdrs
             .iter()
-            .find(|&x| x.name() == index)
+            .find(|x| x.name() == index)
             .and_then(|y| y.as_any().downcast_ref::<T>())
         {
             Some(b) => Ok(b),
@@ -232,7 +232,7 @@ impl Packet {
     ) -> Result<&'a mut T, String> {
         match self.hdrs
             .iter_mut()
-            .find(|&x| x.name() == index)
+            .find(|x| x.name() == index)
             .and_then(|y| y.as_any_mut().downcast_mut::<T>())
         {
             Some(b) => Ok(b),
