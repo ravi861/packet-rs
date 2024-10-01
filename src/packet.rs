@@ -179,6 +179,24 @@ impl Packet {
     pub fn set_payload(&mut self, payload: &[u8]) -> () {
         self.payload.extend_from_slice(payload);
     }
+    /// Get the payload for the packet
+    /// # Example
+    ///
+    /// ```
+    /// # #[macro_use] extern crate packet_rs; use packet_rs::headers::*; use packet_rs::Packet;
+    /// let mut pkt = Packet::new();
+    /// pkt.push(Ether::new());
+    /// pkt.push(Vlan::new());
+    /// pkt.push(IPv4::new());
+    /// // vupdate the payload
+    /// let pld: Vec<u8> = Vec::from([1, 2, 3, 4, 5]);
+    /// pkt.set_payload(pld.as_slice());
+    /// assert_eq!(pkt.payload(), pld.as_slice());
+    /// ```
+    #[inline(always)]
+    pub fn payload(&self) -> &[u8] {
+        &self.payload
+    }
     /// Get immutable access to a header from the packet
     /// # Example
     ///
@@ -708,6 +726,9 @@ impl<'a> PacketSlice<'a> {
     }
     pub(crate) fn set_payload(&mut self, payload: &'a [u8]) -> () {
         self.payload = payload;
+    }
+    pub fn payload(&self) -> &[u8] {
+        self.payload
     }
     pub fn to_vec(&self) -> Vec<u8> {
         let mut r = Vec::new();

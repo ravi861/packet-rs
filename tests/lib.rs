@@ -679,8 +679,7 @@ mod tests {
         }
     }
 
-    fn test_tcp_packet() -> Packet {
-        let payload: Vec<u8> = (0..100).collect::<Vec<u8>>();
+    fn test_tcp_packet_with_payload(payload: &[u8]) -> Packet {
         utils::create_tcp_packet(
             "00:11:11:11:11:11",
             "00:06:07:08:09:0a",
@@ -705,9 +704,15 @@ mod tests {
             0,
             0,
             false,
-            &payload,
+            payload,
         )
     }
+
+    fn test_tcp_packet() -> Packet {
+        let payload: Vec<u8> = (0..100).collect::<Vec<u8>>();
+        test_tcp_packet_with_payload(&payload)
+    }
+
     #[test]
     fn update_packet_test() {
         let mut pkt = test_tcp_packet();
@@ -809,5 +814,25 @@ mod tests {
             p.to_vec();
         }
         println!("{} packets parsed   : {:?}", cnt, start.elapsed());
+    }
+    #[test]
+    fn packet_slice_payload_test() {
+        let payload: &[u8] = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let pkt = test_tcp_packet_with_payload(payload).to_vec();
+
+        let slice = pkt.as_slice();
+
+        let p = parser::fast::parse(&slice);
+        assert_eq!(p.payload(), payload);
+    }
+    #[test]
+    fn packet_payload_test() {
+        let payload: &[u8] = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let pkt = test_tcp_packet_with_payload(payload).to_vec();
+
+        let slice = pkt.as_slice();
+
+        let p = parser::slow::parse(&slice);
+        assert_eq!(p.payload(), payload);
     }
 }
