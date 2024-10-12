@@ -8,18 +8,7 @@
 //! * Fast parsing is atleast 3x faster than slow parsing
 //!
 //! ## Fast parsing
-//! 
-//! ```ignore
-//! let pkt: Packet = slow::parse(&stream)
-//! ```
-//! This returns the `Packet` struct which can then be modified or retransmitted. Below APIs return a full packet from the request offset.
-//! 
-//! * [`slow::parse`] is the top-level parse API which takes a full packet.
-//! * [`slow::parse_ethernet`] parses from the ethernet header and below
-//! * [`slow::parse_ipv4`] parses from the ipv4 header and below
-//! * [`slow::parse_vxlan`] parses from the vxlan header and below
-//! 
-//! ## Slow parsing
+//!
 //! ```ignore
 //! let slice: PacketSlice = fast::parse(&stream);
 //! ```
@@ -29,6 +18,18 @@
 //! * [`fast::parse_arp`] parses from the ARP header and below
 //! * [`fast::parse_ipv6`] parses from the ipv6 header and below
 //! * [`fast::parse_gre`] parses from the gre header and below
+//!
+//! ## Slow parsing
+//!
+//! ```ignore
+//! let pkt: Packet = slow::parse(&stream)
+//! ```
+//! This returns the `Packet` struct which can then be modified or retransmitted. Below APIs return a full packet from the request offset.
+//!
+//! * [`slow::parse`] is the top-level parse API which takes a full packet.
+//! * [`slow::parse_ethernet`] parses from the ethernet header and below
+//! * [`slow::parse_ipv4`] parses from the ipv4 header and below
+//! * [`slow::parse_vxlan`] parses from the vxlan header and below
 //!
 pub mod fast;
 pub mod slow;
